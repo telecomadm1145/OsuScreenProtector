@@ -8,7 +8,7 @@
         mc:Ignorable="d" ShowInTaskbar="False"
         Title="MainWindow" Height="1080" Width="1920"
         RenderOptions.BitmapScalingMode="Fant" TextOptions.TextHintingMode="Fixed" TextOptions.TextRenderingMode="Aliased"
-    xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2">
+    xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2" PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <Style TargetType="ContentControl">
             <Setter Property="Focusable" Value="False"/>

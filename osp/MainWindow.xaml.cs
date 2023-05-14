@@ -624,5 +624,21 @@ namespace osp
             cfg.Save(); // save
             RefreshCollections();
         }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Left)
+            {
+                PrevImg();
+            }
+            else if (e.Key == Key.Right || e.Key == Key.Space)
+            {
+                NextImg();
+            }
+            else if (e.Key == Key.Enter)
+            {
+                RandomImg();
+            }
+        }
     }
 }
