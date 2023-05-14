@@ -190,6 +190,15 @@ namespace osp
             TimeFontSizeSlider.ValueChanged += l2;
             DateFontSizeSlider.ValueChanged += l2;
             GapSlider.ValueChanged += l2;
+
+            AutostartCheckBox.IsChecked = cfg.Autostart;
+            RoutedEventHandler l3 = (_, __) =>
+            {
+                cfg.Autostart = AutostartCheckBox.IsChecked.Value;
+                Extensions.SetAutostart(cfg.Autostart);
+            };
+            AutostartCheckBox.Checked += l3;
+            AutostartCheckBox.Unchecked += l3;
         }
         private static bool HasKeyPressed()
         {

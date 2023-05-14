@@ -751,7 +751,7 @@
                 </Border>
             </Grid>
         </Grid>
-        <Grid x:Name="SettingsFlyout" Visibility="Collapsed">
+        <Grid x:Name="SettingsFlyout" Visibility="Collapsed"  d:Visibility="Visible">
             <Grid.Resources>
                 <Style TargetType="{x:Type TextBlock}">
                     <Setter Property="LineHeight" Value="20"/>
@@ -774,7 +774,8 @@
                                     <Run Text="日志路径 "/>
                                     <InlineUIContainer>
                                         <TextBox TextBlock.BaselineOffset="14" Width="500" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" x:Name="LogPathBox" ToolTip="重启应用"/>
-                                    </InlineUIContainer>
+                                    </InlineUIContainer><LineBreak/>
+                                    自动启动 <CheckBox x:Name="AutostartCheckBox" TextBlock.BaselineOffset="12"/>
                                 </TextBlock>
                                 <TextBlock Text="显示" FontSize="24"/>
                                 <TextBlock>
@@ -849,7 +850,7 @@
                 </Border>
             </Grid>
         </Grid>
-        <Grid x:Name="CollectionFlyout" Visibility="Collapsed" d:Visibility="Visible">
+        <Grid x:Name="CollectionFlyout" Visibility="Collapsed">
 
             <Grid Background="#50000000">
                 <Border Width="800" Height="600" Background="#7f000000" CornerRadius="10">
@@ -857,11 +858,10 @@
                         <TabControl x:Name="Collections">
                         </TabControl>
                         <!--请在此添加-->
-                        <StackPanel>
-                            
+                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Orientation="Horizontal">
+                            <Button Margin="5,0,5,0" Content="刷新" Click="Button_Click_15"/>
+                            <Button Margin="5,0,5,0" Content="X" Padding="8,5,8,5" Click="Button_Click_13"/>
                         </StackPanel>
-                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Content="刷新" Padding="8,5,8,5" Click="Button_Click_13"/>
-                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Content="X" Padding="8,5,8,5" Click="Button_Click_13"/>
                         <Grid x:Name="CollectionDetailView" Visibility="Collapsed">
                             <Border Background="#7f000000" CornerRadius="10">
                                 <Grid>

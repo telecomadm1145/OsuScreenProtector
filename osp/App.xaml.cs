@@ -20,6 +20,7 @@ namespace osp
             Logger.Instance.Setup();
             Config.Instance.RebuildImageCache();
             new Power().EnableConstantDisplayAndPower(true);
+            Extensions.SetAutostart(Config.Instance.Autostart);
             base.OnStartup(e);
         }
     }

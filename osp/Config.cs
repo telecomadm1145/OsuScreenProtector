@@ -227,6 +227,12 @@ namespace OsuScreenProtector
         public double TimeFontSize { get; set; } = 65;
         public double DateFontSize { get; set; } = 35;
         public double TimeDateGap { get; set; } = 0;
+        public bool Autostart { get; set; } =
+#if DEBUG
+            false;
+#else
+            true;
+#endif
     }
 }
 

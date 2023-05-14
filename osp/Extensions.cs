@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Windows;
@@ -137,6 +139,17 @@ namespace osp
         public static T Random<T>(this IList<T> e)
         {
             return e[random.Next(0, e.Count)];
+        }
+        public static void SetAutostart(bool enabled)
+        {
+            const string Key = "osp_autostart";
+            RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+            if (enabled)
+                key.SetValue(Key, System.Reflection.Assembly.GetEntryAssembly().Location,RegistryValueKind.String);
+            else
+                if (key.GetValueNames().Contains(Key))
+                    key.DeleteValue(Key);
+            key.Dispose();
         }
     }
 }
