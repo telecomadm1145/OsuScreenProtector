@@ -6,9 +6,9 @@
         xmlns:local="clr-namespace:osp"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d" ShowInTaskbar="False"
-        Title="MainWindow" Height="1080" Width="1920"
-        RenderOptions.BitmapScalingMode="Fant" TextOptions.TextHintingMode="Fixed" TextOptions.TextRenderingMode="Aliased"
-    xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2" PreviewKeyDown="Window_PreviewKeyDown">
+        Title="OSUpdater" Height="1080" Width="1920"
+        RenderOptions.BitmapScalingMode="Linear" TextOptions.TextHintingMode="Fixed" TextOptions.TextRenderingMode="Aliased"
+    xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2" KeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <Style TargetType="ContentControl">
             <Setter Property="Focusable" Value="False"/>
@@ -751,7 +751,7 @@
                 </Border>
             </Grid>
         </Grid>
-        <Grid x:Name="SettingsFlyout" Visibility="Collapsed"  d:Visibility="Visible">
+        <Grid x:Name="SettingsFlyout" Visibility="Collapsed">
             <Grid.Resources>
                 <Style TargetType="{x:Type TextBlock}">
                     <Setter Property="LineHeight" Value="20"/>
@@ -807,6 +807,11 @@
                                     <Slider x:Name="GapSlider" Minimum="-50" Maximum="50" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="15"/>
                                     <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=GapSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
                                 </TextBlock>
+                                <TextBlock Text="音频" FontSize="24"/>
+                                <TextBlock>
+                                    音量<LineBreak/>
+                                    <Slider Width="200" Minimum="0" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" x:Name="VolumeSlider"/>
+                                </TextBlock>
                                 <TextBlock Text="定时" FontSize="24"/>
                                 <TextBlock>
                                     <Run Text="每 "/>
@@ -838,6 +843,7 @@
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                     <Button Content="显示一条通知" Margin="5" Click="Button_Click_2"/>
+                                    <Button Content="停止播放" Margin="5" Click="Button_Click_18"/>
                                 </StackPanel>
                                 <TextBlock HorizontalAlignment="Center" Text="Created by telecomadm1145.All rights reversed." FontSize="12" Foreground="#50ffffff"/>
                             </StackPanel>
@@ -850,20 +856,24 @@
                 </Border>
             </Grid>
         </Grid>
-        <Grid x:Name="CollectionFlyout" Visibility="Collapsed">
+        <Grid x:Name="CollectionFlyout" Visibility="Collapsed" d:Visibility="Visible">
 
             <Grid Background="#50000000">
                 <Border Width="800" Height="600" Background="#7f000000" CornerRadius="10">
                     <Grid>
-                        <TabControl x:Name="Collections">
-                        </TabControl>
-                        <!--请在此添加-->
-                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Orientation="Horizontal">
-                            <Button Margin="5,0,5,0" Content="刷新" Click="Button_Click_15"/>
-                            <Button Margin="5,0,5,0" Content="X" Padding="8,5,8,5" Click="Button_Click_13"/>
-                        </StackPanel>
-                        <Grid x:Name="CollectionDetailView" Visibility="Collapsed">
-                            <Border Background="#7f000000" CornerRadius="10">
+                        <Grid x:Name="CollectionsBack">
+                            <TabControl x:Name="Collections">
+                            </TabControl>
+                            <!--请在此添加-->
+                            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Orientation="Horizontal">
+                                <Button Margin="5,0,5,0" Content="新建" Click="Button_Click_16"/>
+                                <Button Margin="5,0,5,0" Content="保存" Click="Button_Click_5"/>
+                                <Button Margin="5,0,5,0" Content="刷新" Click="Button_Click_15"/>
+                                <Button Margin="5,0,5,0" Content="X" Padding="8,5,8,5" Click="Button_Click_13"/>
+                            </StackPanel>
+                        </Grid>
+                        <Grid x:Name="CollectionDetailView" Visibility="Collapsed" d:Visibility="Visible">
+                            <Border Background="#7f000000" CornerRadius="10" Padding="10">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="auto"/>
@@ -873,18 +883,28 @@
                                         <ColumnDefinition Width="auto"/>
                                         <ColumnDefinition Width="1*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Image Width="300" MinHeight="250" VerticalAlignment="Top" x:Name="CollectionDetailViewImage"/>
+                                    <Image Width="400" Margin="5" VerticalAlignment="Top" x:Name="CollectionDetailViewImage" MouseLeftButtonDown="CollectionDetailViewImage_MouseLeftButtonDown">
+                                        <Image.OpacityMask>
+                                            <VisualBrush>
+                                                <VisualBrush.Visual>
+                                                    <Border Background="White" CornerRadius="10" Width="{Binding ActualWidth,ElementName=CollectionDetailViewImage}" Height="{Binding ActualHeight,ElementName=CollectionDetailViewImage}"/>
+                                                </VisualBrush.Visual>
+                                            </VisualBrush>
+                                        </Image.OpacityMask>
+                                    </Image>
                                     <!--Img-->
-                                    <TextBlock Grid.Column="1" x:Name="CollectionDetailViewInfo"/>
-                                    <ScrollViewer Grid.ColumnSpan="2" Grid.Row="1" Height="80" VerticalAlignment="Top">
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" x:Name="CollectionDetailViewOtherImages">
+                                    <TextBlock Grid.Column="1" x:Name="CollectionDetailViewInfo" FontSize="18" TextWrapping="Wrap"/>
+                                    <Border Background="#d0000000" CornerRadius="10" Grid.ColumnSpan="2" Grid.Row="1" VerticalAlignment="Top">
+                                        <ScrollViewer Height="120">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" x:Name="CollectionDetailViewOtherImages">
 
-                                        </StackPanel>
-                                    </ScrollViewer>
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </Border>
                                     <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
                                         <Button Content="移除收藏" Margin="5"/>
                                         <Button Content="打开图片" Margin="5"/>
-                                        <Button Content="关闭" Margin="5"/>
+                                        <Button Content="关闭" Margin="5" Click="Button_Click_17"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -893,6 +913,23 @@
                 </Border>
             </Grid>
         </Grid>
+        <ScrollViewer x:Name="FullViewScrollViewer" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MouseRightButtonDown="FullViewScrollViewer_MouseRightButtonDown" PreviewMouseWheel="FullViewScrollViewer_MouseWheel">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40">
+                <Image x:Name="FullViewImg">
+                    <Image.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="FullViewImgScale"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Image.LayoutTransform>
+                    <Image.Effect>
+                        <DropShadowEffect Color="White" ShadowDepth="0" BlurRadius="20"/>
+                    </Image.Effect>
+                </Image>
+            </Grid>
+        </ScrollViewer>
         <ScrollViewer HorizontalAlignment="Left" VerticalAlignment="Top" x:Name="NotificationScroller">
             <StackPanel Margin="10" x:Name="NotificationPanel">
                 <!--flyout-->

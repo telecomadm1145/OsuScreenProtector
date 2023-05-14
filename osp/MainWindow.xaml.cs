@@ -1,4 +1,5 @@
-﻿using OsuScreenProtector;
+﻿using osp.Audio;
+using OsuScreenProtector;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,13 +12,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
+using Keys = System.Windows.Forms.Keys;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
@@ -128,6 +132,7 @@ namespace osp
             });
             FontListViewer.ScrollToVerticalOffset(ch);
             Closing += (s, e) => { e.Cancel = true; Hide(); };
+            Beatmap onp = null;
             var dt = new DispatcherTimer();
             dt.Interval = TimeSpan.FromMilliseconds(1);
             dt.Tick += (s, e) =>
@@ -142,6 +147,18 @@ namespace osp
                 Time.FontSize = cfg.TimeFontSize;
                 Date.FontSize = cfg.DateFontSize;
                 Date.Margin = new Thickness(0, cfg.TimeDateGap, 0, 0);
+
+                if (audiostream != null && audiostream.Stopped)
+                {
+                    audiostream.Play();
+                }
+                if (onp != np)
+                {
+                    Beatmap np_c = np;
+                    if (np != null)
+                        PushNotification($"Now playing {np.Artist} - {np.Title}", double.MaxValue, (x) => np != np_c);
+                    onp = np;
+                }
             };
             dt.Start();
             var trigonce = new Thread(() =>
@@ -153,10 +170,11 @@ namespace osp
                 Dispatcher.Invoke(() => PushNotification("检测到缓存过期，请在设置中重建缓存", double.MaxValue, (x) => !cfg.GetShouldRebuildImageCache()));
             });
             trigonce.Start();
-            var hotkey = new Thread(() => { 
-                while(true)
+            var hotkey = new Thread(() =>
+            {
+                while (true)
                 {
-                    if ((Key.LeftCtrl.IsPressed() || Key.RightCtrl.IsPressed()) && Key.Tab.IsPressed() && Key.S.IsPressed())
+                    if (Keys.ControlKey.IsPressed() && Keys.Tab.IsPressed() && Keys.S.IsPressed())
                     {
                         Dispatcher.Invoke(() => { Show(); Activate(); });
                     }
@@ -199,10 +217,29 @@ namespace osp
             };
             AutostartCheckBox.Checked += l3;
             AutostartCheckBox.Unchecked += l3;
+            try
+            {
+                bam.OpenDevice(bam.GetDefaultDevice());
+            }
+            catch
+            {
+                log.Log("Cannot init bass", "Error");
+                bam = null;
+            }
+            VolumeSlider.Value = cfg.Volume;
+            VolumeSlider.ValueChanged += (_, __) =>
+            {
+                cfg.Volume = VolumeSlider.Value;
+                if (audiostream != null)
+                {
+                    audiostream.Volume = cfg.Volume / 100;
+                }
+            };
         }
+        private BassAudioManager bam = new BassAudioManager();
         private static bool HasKeyPressed()
         {
-            return Enum.GetValues(typeof(Key)).Cast<Key>().Where(x => (int)x != 0 && (int)x != 1).Any(x =>x.IsPressed());
+            return Enum.GetValues(typeof(Keys)).Cast<Keys>().Where(x => (int)x != 0 && (int)x != 1).Any(x => x.IsPressed());
         }
         [DllImport("user32.dll")]
         static extern IntPtr GetWindowLong(IntPtr hWnd, int nIndex);
@@ -219,6 +256,13 @@ namespace osp
             while (true)
             {
                 TimeSpan elapsed = sw.Elapsed;
+                if (breaktimer)
+                {
+                    lastaction = elapsed + breakduration;
+                    lastnext = elapsed + breakduration;
+                    breaktimer = false;
+                    breakduration = default;
+                }
                 if (!IsWin32WindowVisble(rmw))
                 {
                     bool key = HasKeyPressed();
@@ -231,6 +275,7 @@ namespace osp
                 }
                 else
                 {
+                    AudioMixerHelper.SetMasterVolume(1);
                     lastaction = elapsed;
                 }
 
@@ -246,8 +291,9 @@ namespace osp
                     Dispatcher.Invoke(NextImg);
                     lastnext = elapsed;
                 }
+                AudioMixerHelper.SetAppMasterVolume(1);
                 log.Flush();
-                Thread.Sleep(1000);
+                Thread.Sleep(10);
             }
         }
 
@@ -260,7 +306,11 @@ namespace osp
         private Config cfg => Config.Instance;
         private Logger log => Logger.Instance;
         private int cursor;
+        private bool breaktimer;
+        private TimeSpan breakduration;
         private Config.Beatmap curbmp;
+        private IAudioStream audiostream;
+        private Config.Beatmap np;
         private void LoadImg(bool next = true)
         {
         reload:
@@ -288,25 +338,116 @@ namespace osp
                 Bg.Source = new BitmapImage(new Uri(beatmap.BgPath));
                 DetailInfoBox.Inlines.Clear();
                 var span = new Span();
-                span.Inlines.Add(new Run($"{beatmap.Artist} - {beatmap.Title}") { FontSize = 18 });
-                span.Inlines.Add(new Run($" (Mapset {beatmap.MapsetId};Map {beatmap.Id})\n"));
+                var inline1 = new Run($"{beatmap.Artist} - {beatmap.Title}\n") { FontSize = 18, ToolTip = $"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}" };
+
+                ContextMenu ctx = new ContextMenu();
+                MenuItem copy1 = new MenuItem() { Header = "复制全称" };
+                copy1.Click += (s, e) => Clipboard.SetText($"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}");
+                ctx.Items.Add(copy1);
+                MenuItem copy2 = new MenuItem() { Header = "复制全称(罗马音)" };
+                copy2.Click += (s, e) => Clipboard.SetText($"{beatmap.Artist} - {beatmap.Title}");
+                ctx.Items.Add(copy2);
+                MenuItem copy3 = new MenuItem() { Header = "复制标题" };
+                copy3.Click += (s, e) => Clipboard.SetText(beatmap.TitleUnicode);
+                ctx.Items.Add(copy3);
+                MenuItem copy4 = new MenuItem() { Header = "复制标题(罗马音)" };
+                copy4.Click += (s, e) => Clipboard.SetText(beatmap.Title);
+                ctx.Items.Add(copy4);
+                MenuItem copy5 = new MenuItem() { Header = "复制艺术家" };
+                copy5.Click += (s, e) => Clipboard.SetText(beatmap.ArtistUnicode);
+                ctx.Items.Add(copy5);
+                MenuItem copy6 = new MenuItem() { Header = "复制艺术家(罗马音)" };
+                copy6.Click += (s, e) => Clipboard.SetText(beatmap.Artist);
+                ctx.Items.Add(copy6);
+                if (beatmap.MapsetId != -1 && beatmap.Id != 0)
+                {
+                    MenuItem copy7 = new MenuItem() { Header = "复制Id" };
+                    copy7.Click += (s, e) => Clipboard.SetText(beatmap.MapsetId.ToString());
+                    ctx.Items.Add(copy7);
+                    MenuItem open1 = new MenuItem() { Header = "在浏览器打开" };
+                    open1.Click += (s, e) => Process.Start($"https://osu.ppy.sh/b/{beatmap.Id}");
+                    ctx.Items.Add(open1);
+                    MenuItem open2 = new MenuItem() { Header = "在应用内打开" };
+                    open2.Click += (s, e) => Process.Start($"osu://b/{beatmap.Id}");
+                    ctx.Items.Add(open2);
+                }
+                inline1.ContextMenu = ctx;
+                span.Inlines.Add(inline1);
                 var hl = new Hyperlink(new Run("点我查看图片\n"));
                 hl.Click += (s, e) => { Topmost = false; Process.Start(beatmap.BgPath); };
                 hl.ToolTip = beatmap.BgPath;
                 span.Inlines.Add(hl);
-                var hl2 = new Hyperlink(new Run("点我播放(小声)\n"));
-                var hl3 = new Hyperlink(new Run("点我停止\n"));
-                hl2.Click += (s, e) =>
+                if (!string.IsNullOrWhiteSpace(beatmap.SongPath) && bam != null)
                 {
-
-                };
+                    var hl2 = new Hyperlink(new Run("点我播放 "));
+                    var hl3 = new Hyperlink(new Run("点我停止\n"));
+                    var dt = new DispatcherTimer();
+                    dt.Interval = TimeSpan.FromMilliseconds(1);
+                    var progress = new Slider();
+                    progress.Width = 200;
+                    progress.Maximum = 0;
+                    progress.Value = 0;
+                    progress.TickFrequency = 10;
+                    progress.Visibility = Visibility.Collapsed;
+                    progress.TickPlacement = System.Windows.Controls.Primitives.TickPlacement.BottomRight;
+                    progress.ValueChanged += (s, e) =>
+                    {
+                        if (audiostream != null && Math.Abs(audiostream.Current.TotalSeconds - progress.Value) > 0.1)
+                        {
+                            var p = TimeSpan.FromSeconds(progress.Value);
+                            if (p < audiostream.Duration)
+                                audiostream.Current = p;
+                        }
+                    };
+                    progress.Unloaded += (_, __) => dt.Stop();
+                    dt.Tick += (s, e) => { if (audiostream != null) progress.Value = audiostream.Current.TotalSeconds; };
+                    dt.Start();
+                    TextBlock.SetBaselineOffset(progress, 14);
+                    hl2.Click += (s, e) =>
+                    {
+                        if (audiostream != null)
+                        {
+                            var as_ = audiostream;
+                            audiostream = null;
+                            as_.Stop();
+                        }
+                        np = beatmap;
+                        var channel = bam.Load(File.OpenRead(beatmap.SongPath));
+                        audiostream = channel;
+                        audiostream.Volume = cfg.Volume / 100;
+                        audiostream.Play();
+                        progress.Maximum = Math.Round(audiostream.Duration.TotalSeconds);
+                        audiostream.Current = TimeSpan.FromMilliseconds(beatmap.PreviewPoint == -1 || beatmap.PreviewPoint == 0 ? audiostream.Duration.TotalMilliseconds / 3 : beatmap.PreviewPoint);
+                        progress.Visibility = Visibility.Visible;
+                        hl3.IsEnabled = true;
+                    };
+                    hl3.Click += (s, e) =>
+                    {
+                        var as_ = audiostream;
+                        audiostream = null;
+                        as_.Stop();
+                        np = null;
+                    };
+                    hl3.IsEnabled = false;
+                    span.Inlines.Add(hl2);
+                    span.Inlines.Add(hl3);
+                    span.Inlines.Add(progress);
+                    span.Inlines.Add(new Run("\n"));
+                }
                 var hl4 = new Hyperlink(new Run("点我打开音频\n"));
                 hl4.Click += (s, e) => { Topmost = false; Process.Start(beatmap.SongPath); };
                 hl4.ToolTip = beatmap.SongPath;
                 span.Inlines.Add(hl4);
+                var hl5 = new Hyperlink(new Run("额外保持10分钟"));
+                hl5.Click += (_, __) => {
+                    breaktimer = true;
+                    breakduration = TimeSpan.FromMinutes(10);
+                };
+                span.Inlines.Add(hl5);
                 DetailInfoBox.Inlines.Add(span);
                 log.Log($"已加载{beatmap.BgPath}({beatmap.Artist} - {beatmap.Title}(Id:{beatmap.Id}))");
                 curbmp = beatmap;
+                breaktimer = true;
             }
             catch
             {
@@ -440,7 +581,13 @@ namespace osp
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            PushNotification($"已将{curbmp.Title}加入收藏品:)");
+            var suki = cfg.Collections.Find(x => x.Name.ToLower() == "sukidesu");
+            if (suki.Images.Contains(curbmp.MapsetId))
+                PushNotification($"{curbmp.Title} 已经在收藏品里面了:(");
+            suki.Images.Add(curbmp.MapsetId);
+            cfg.Save();
+            PushNotification($"已将 {curbmp.Title} 加入收藏品:)");
+            RefreshCollections();
         }
 
         private void Button_Click_1(object sender, RoutedEventArgs e)
@@ -545,6 +692,14 @@ namespace osp
                 grid.Children.Add(item);
                 i++;
             }
+            if (i == 0)
+            {
+                var tb = new TextBlock();
+                tb.Text = "<空>";
+                tb.HorizontalAlignment = HorizontalAlignment.Stretch;
+                tb.VerticalAlignment = VerticalAlignment.Top;
+                grid.Children.Add(tb);
+            }
         }
         private void RefreshCollections()
         {
@@ -552,7 +707,165 @@ namespace osp
             Dictionary<Image, string> BackgroundLoadImages = new Dictionary<Image, string>();
             foreach (var collection in cfg.Collections)
             {
-                
+                var localizedstr = collection.Name;
+                if (localizedstr.ToLower() == "sukidesu")
+                    localizedstr = "我喜欢的";
+                TabItem colpage = new TabItem() { Header = localizedstr };
+                var colpage2 = new ScrollViewer();
+                var colpage2_g = new StackPanel();
+                colpage2.Content = colpage2_g;
+                var colpage2_tb = new TextBox() { MinHeight = 50,HorizontalAlignment = HorizontalAlignment.Stretch};
+                colpage2_tb.Text = collection.Description ?? "还没有简介呢，火速写一个";
+                colpage2_tb.AcceptsReturn = true;
+                colpage2_tb.AcceptsTab = true;
+                colpage2_tb.TextChanged += (s, e) => { collection.Description = colpage2_tb.Text; };
+                colpage2_g.Children.Add(colpage2_tb);
+                var colpage2_gv = new Grid();
+                MakeGridView(collection.Images.Select(x => cfg.Caches.Find(y => y.MapsetId == x)).Where(y => y != null).Select(x =>
+                {
+                    var container = new Grid()
+                    {
+                        Width = 200,
+                        Margin = new Thickness(10),
+                    };
+                    var img = new Image()
+                    {
+                        Stretch = Stretch.Uniform,
+                    };
+                    var cover = new Rectangle()
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch,
+                        Fill = new SolidColorBrush(Colors.Black) { Opacity = .3 },
+                        Visibility = Visibility.Collapsed,
+                    };
+                    var plain = new TextBlock()
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Text = "已删除",
+                        Visibility = Visibility.Collapsed,
+                    };
+                    BackgroundLoadImages.Add(img, x.Beatmaps[0].BgPath);
+                    container.Children.Add(img);
+                    container.Children.Add(cover);
+                    container.Children.Add(plain);
+                    img.MouseDown += (s, e) =>
+                    {
+                        CollectionsBack.Effect = new BlurEffect();
+                        Dictionary<Image, string> BackgroundLoadImages2 = new Dictionary<Image, string>();
+                        CollectionDetailView.Visibility = Visibility.Visible;
+                        CollectionDetailViewImage.Source = new BitmapImage(new Uri(x.Beatmaps[0].BgPath));
+                        CollectionDetailViewInfo.Inlines.Clear();
+                        var span = new Span();
+                        span.Inlines.Add($"{x.Beatmaps[0].Artist} - {x.Beatmaps[0].Title}\n");
+                        if (!string.IsNullOrWhiteSpace(x.Beatmaps[0].SongPath) && bam != null)
+                        {
+                            var hl2 = new Hyperlink(new Run("点我播放 "));
+                            var hl3 = new Hyperlink(new Run("点我停止\n"));
+                            var dt = new DispatcherTimer();
+                            dt.Interval = TimeSpan.FromMilliseconds(1);
+                            var progress = new Slider();
+                            progress.Width = 200;
+                            progress.Maximum = 0;
+                            progress.Value = 0;
+                            progress.TickFrequency = 10;
+                            progress.Visibility = Visibility.Collapsed;
+                            progress.TickPlacement = System.Windows.Controls.Primitives.TickPlacement.BottomRight;
+                            progress.ValueChanged += (_, __) =>
+                            {
+                                if (audiostream != null && Math.Abs(audiostream.Current.TotalSeconds - progress.Value) > 0.1)
+                                {
+                                    var p = TimeSpan.FromSeconds(progress.Value);
+                                    if (p < audiostream.Duration)
+                                        audiostream.Current = p;
+                                }
+                            };
+                            progress.Unloaded += (_, __) => dt.Stop();
+                            dt.Tick += (_, __) => { if (audiostream != null) progress.Value = audiostream.Current.TotalSeconds; };
+                            dt.Start();
+                            TextBlock.SetBaselineOffset(progress, 14);
+                            hl2.Click += (_, __) =>
+                            {
+                                if (audiostream != null)
+                                {
+                                    var as_ = audiostream;
+                                    audiostream = null;
+                                    as_.Stop();
+                                }
+                                np = x.Beatmaps[0];
+                                var channel = bam.Load(File.OpenRead(x.Beatmaps[0].SongPath));
+                                audiostream = channel;
+                                audiostream.Volume = cfg.Volume / 100;
+                                audiostream.Play();
+                                progress.Maximum = Math.Round(audiostream.Duration.TotalSeconds);
+                                audiostream.Current = TimeSpan.FromMilliseconds(x.Beatmaps[0].PreviewPoint == -1 || x.Beatmaps[0].PreviewPoint == 0 ? audiostream.Duration.TotalMilliseconds / 3 : x.Beatmaps[0].PreviewPoint);
+                                progress.Visibility = Visibility.Visible;
+                                hl3.IsEnabled = true;
+                            };
+                            hl3.Click += (_, __) =>
+                            {
+                                var as_ = audiostream;
+                                audiostream = null;
+                                as_.Stop();
+                                np = null;
+                            };
+                            hl3.IsEnabled = false;
+                            span.Inlines.Add(hl2);
+                            span.Inlines.Add(hl3);
+                            span.Inlines.Add(progress);
+                            span.Inlines.Add(new Run("\n"));
+                        }
+                        var hl4 = new Hyperlink(new Run("切换到这一张\n"));
+                        hl4.Click += (_, __) => {
+                            cursor = cfg.Caches.IndexOf(x);
+                            LoadImg();
+                        };
+                        span.Inlines.Add(hl4);
+                        var hl5 = new Hyperlink(new Run("切换到这一张并额外保持10分钟"));
+                        hl5.Click += (_, __) => {
+                            cursor = cfg.Caches.IndexOf(x);
+                            breaktimer = true;
+                            breakduration = TimeSpan.FromMinutes(10);
+                            LoadImg();
+                        };
+                        span.Inlines.Add(hl5);
+                        CollectionDetailViewInfo.Inlines.Add(span);
+                        CollectionDetailViewOtherImages.Children.Clear();
+                        foreach (var bmp in x.Beatmaps)
+                        {
+                            var img3 = new Image();
+                            img3.Height = 80;
+                            img3.Margin = new Thickness(3);
+                            img3.MouseDown += (_, __) => {
+                                CollectionDetailViewImage.Source = new BitmapImage(new Uri(bmp.BgPath));
+                            };
+                            BackgroundLoadImages2.Add(img3, bmp.BgPath);
+                            CollectionDetailViewOtherImages.Children.Add(img3);
+                        }
+                        Task.Run(() =>
+                        {
+                            foreach (var img2 in BackgroundLoadImages2)
+                            {
+                                using (var fs = File.OpenRead(img2.Value))
+                                {
+                                    var imgsource = new BitmapImage();
+                                    imgsource.BeginInit();
+                                    imgsource.DecodePixelHeight = 80;
+                                    imgsource.CacheOption = BitmapCacheOption.OnLoad;
+                                    imgsource.StreamSource = fs;
+                                    imgsource.EndInit();
+                                    imgsource.Freeze();
+                                    img2.Key.Dispatcher.Invoke(() => { img2.Key.Source = imgsource; });
+                                }
+                            }
+                        });
+                    };
+                    return container;
+                }), colpage2_gv, 3);
+                colpage2_g.Children.Add(colpage2_gv);
+                colpage.Content = colpage2;
+                Collections.Items.Add(colpage);
             }
             TabItem dislikepage = new TabItem() { Header = "回收站" };
             var dislikepage2 = new ScrollViewer();
@@ -601,7 +914,8 @@ namespace osp
             dislikepage.Content = dislikepage2;
             Collections.Items.Add(dislikepage);
             Collections.SelectedIndex = 0;
-            Task.Run(() => {
+            Task.Run(() =>
+            {
                 foreach (var img in BackgroundLoadImages)
                 {
                     using (var fs = File.OpenRead(img.Value))
@@ -653,6 +967,56 @@ namespace osp
         private void Button_Click_15(object sender, RoutedEventArgs e)
         {
             RefreshCollections();
+        }
+
+        private void Button_Click_16(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
+        private void Button_Click_17(object sender, RoutedEventArgs e)
+        {
+            CollectionsBack.Effect = null;
+            CollectionDetailView.Visibility = Visibility.Collapsed;
+        }
+
+        private void CollectionDetailViewImage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            FullViewImg.Source = CollectionDetailViewImage.Source;
+            FullViewScrollViewer.Visibility = Visibility.Visible;
+        }
+
+        private void FullViewScrollViewer_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+            FullViewScrollViewer.Visibility = Visibility.Collapsed;
+        }
+
+        private void FullViewScrollViewer_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (Keys.ControlKey.IsPressed())
+            {
+                e.Handled = true;
+                var orig = FullViewImgScale.ScaleX;
+                FullViewImgScale.ScaleY = FullViewImgScale.ScaleX = FullViewImgScale.ScaleX + (double)e.Delta / 10000;
+                var now = FullViewImgScale.ScaleX;
+                // 中间点
+                /*
+                FullViewScrollViewer.ScrollToVerticalOffset((FullViewScrollViewer.VerticalOffset + FullViewScrollViewer.ActualHeight / 2) / orig * now - FullViewScrollViewer.ActualHeight / 2);
+                FullViewScrollViewer.ScrollToHorizontalOffset((FullViewScrollViewer.HorizontalOffset + FullViewScrollViewer.ActualWidth / 2) / orig * now - FullViewScrollViewer.ActualWidth / 2);
+                */
+                var originp = e.GetPosition(FullViewScrollViewer);
+                FullViewScrollViewer.ScrollToVerticalOffset((FullViewScrollViewer.VerticalOffset + originp.Y) / orig * now - originp.Y);
+                FullViewScrollViewer.ScrollToHorizontalOffset((FullViewScrollViewer.HorizontalOffset + originp.X) / orig * now - originp.X);
+            }
+        }
+
+        private void Button_Click_18(object sender, RoutedEventArgs e)
+        {
+            if (audiostream != null && audiostream.Playing)
+            {
+                audiostream.Stop();
+            }
         }
     }
 }

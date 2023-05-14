@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Windows;
 using System.Windows.Controls;
+using Keys = System.Windows.Forms.Keys;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -19,7 +20,7 @@ namespace osp
 
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
-        public static bool IsPressed(this Key key)
+        public static bool IsPressed(this Keys key)
         {
             return (GetAsyncKeyState((int)key) & 0xff00) != 0;
         }

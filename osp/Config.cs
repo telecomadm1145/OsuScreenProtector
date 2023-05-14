@@ -32,8 +32,8 @@ namespace OsuScreenProtector
                         {
                             Instance = System.Text.Json.JsonSerializer.Deserialize<Config>(File.ReadAllText(cfgpath));
                             Instance.OsuPath = osupath;
-                            if (!Instance.Collections.Any(x=>x.Name == "Sukidesu"))
-                                Instance.Collections.Add(new GalleryCollection() { Name = "Sukidesu",Description="我喜欢的图集"});
+                            if (!Instance.Collections.Any(x => x.Name == "Sukidesu"))
+                                Instance.Collections.Add(new GalleryCollection() { Name = "Sukidesu", Description = "我喜欢的图集" });
                             return Instance;
                         }
                         catch (Exception ex)
@@ -82,39 +82,45 @@ namespace OsuScreenProtector
                 foreach (var dir in Directory.EnumerateDirectories(songs))
                 {
                     if (Directory.GetLastWriteTimeUtc(dir) > LastSongsFolderModifiyTime)
-                    if (dir != "Failed")
-                    {
-                        Logger.Instance.Log($"Reading {dir}...", "Info");
-                        var cache = new CacheEntry();
-                        foreach (var dir2 in Directory.EnumerateFiles(dir))
+                        if (dir != "Failed")
                         {
-                            if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
+                            Logger.Instance.Log($"Reading {dir}...", "Info");
+                            var cache = new CacheEntry();
+                            foreach (var dir2 in Directory.EnumerateFiles(dir))
                             {
-                                using (var sr = new StreamReader(dir2))
+                                if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
                                 {
-                                    try
+                                    using (var sr = new StreamReader(dir2))
                                     {
-                                    var bmp = Beatmap.Parse(sr);
-                                    bmp.SongPath = Path.Combine(dir, bmp.SongPath);
-                                    bmp.BgPath = Path.Combine(dir, bmp.BgPath);
-                                    if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
-                                    {
-                                        cache.MapsetId = bmp.MapsetId;
-                                        cache.Name = bmp.Title;
-                                        cache.Beatmaps.Add(bmp);
-                                        Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
-                                    }
+                                        try
+                                        {
+                                            var bmp = Beatmap.Parse(sr);
+                                            bmp.SongPath = Path.Combine(dir, bmp.SongPath);
+                                            bmp.BgPath = Path.Combine(dir, bmp.BgPath);
+                                            if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
+                                            {
+                                                cache.MapsetId = bmp.MapsetId;
+                                                cache.Name = bmp.Title;
+                                                cache.Beatmaps.Add(bmp);
+                                                Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
+                                            }
                                             count++;
-                                }
-                                    catch
-                                    {
-                                        Logger.Instance.Log($"Failed to process {dir2}.", "Info");
+                                        }
+                                        catch
+                                        {
+                                            Logger.Instance.Log($"Failed to process {dir2}.", "Info");
+                                        }
                                     }
                                 }
                             }
+                            var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
+                            if (same != null)
+                            {
+                                Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
+                                Caches.Remove(same);
+                            }
+                            Caches.Add(cache);
                         }
-                        Caches.Add(cache);
-                    }
                 }
                 Logger.Instance.Log($"Updated or loaded {count} beatmaps");
                 LastSongsFolderModifiyTime = newlast;
@@ -133,13 +139,14 @@ namespace OsuScreenProtector
             var cfgpath = Path.Combine(OsuPath, ConfigName);
             File.Delete(cfgpath);
         }
-        public string ConfigPath=> Path.Combine(OsuPath, ConfigName);
+        public string ConfigPath => Path.Combine(OsuPath, ConfigName);
         public string OsuPath { get; set; }
         public string LogPath { get; set; }
         public DateTime LastSongsFolderModifiyTime { get; set; }
         public List<CacheEntry> Caches { get; set; } = new List<CacheEntry>();
         public class CacheEntry
         {
+            public string Dir { get; set; }
             public string Name { get; set; }
             public long MapsetId { get; set; }
             public List<Beatmap> Beatmaps { get; set; } = new List<Beatmap>();
@@ -148,10 +155,13 @@ namespace OsuScreenProtector
         {
             public string Title { get; set; }
             public string Artist { get; set; }
+            public string TitleUnicode { get; set; }
+            public string ArtistUnicode { get; set; }
             public string SongPath { get; set; }
             public string BgPath { get; set; }
             public long Id { get; set; }
             public long MapsetId { get; set; }
+            public double PreviewPoint { get; set; }
             public static Beatmap Parse(string data)
             {
                 return Parse(new StringReader(data));
@@ -186,25 +196,43 @@ namespace OsuScreenProtector
                         continue;
                     var key = line.Substring(0, line.IndexOf(':')).Trim().ToLower();
                     var value = line.Substring(line.IndexOf(':') + 1).Trim();
-                    if (key == "audiofilename" && name == "general")
+                    if (key == "audiofilename")
                     {
                         bmp.SongPath = value;
                     }
-                    if (key == "beatmapid" && name == "metadata")
+                    if (key == "beatmapid")
                     {
-                        bmp.Id = long.Parse(value);
+                        long id;
+                        if (long.TryParse(value, out id))
+                            bmp.Id = id;
                     }
-                    if (key == "beatmapsetid" && name == "metadata")
+                    if (key == "previewtime")
                     {
-                        bmp.MapsetId = long.Parse(value);
+                        double preview;
+                        if (double.TryParse(value, out preview))
+                            bmp.PreviewPoint = preview;
                     }
-                    if (key == "title" && name == "metadata")
+                    if (key == "beatmapsetid")
+                    {
+                        long id;
+                        if (long.TryParse(value, out id))
+                            bmp.MapsetId = id;
+                    }
+                    if (key == "title")
                     {
                         bmp.Title = value;
                     }
-                    if (key == "artist" && name == "metadata")
+                    if (key == "artist")
                     {
                         bmp.Artist = value;
+                    }
+                    if (key == "titleunicode")
+                    {
+                        bmp.TitleUnicode = value;
+                    }
+                    if (key == "artistunicode")
+                    {
+                        bmp.ArtistUnicode = value;
                     }
                 }
                 return bmp;
@@ -233,6 +261,7 @@ namespace OsuScreenProtector
 #else
             true;
 #endif
+        public double Volume { get; set; } = 10;
     }
 }
 
