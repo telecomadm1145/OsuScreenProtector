@@ -838,13 +838,7 @@
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                     <Button Content="显示一条通知" Margin="5" Click="Button_Click_2"/>
                                 </StackPanel>
-                                <ListBox Height="30">
-                                    <ListBoxItem Content="123"/>
-                                    <ListBoxItem Content="123"/>
-                                    <ListBoxItem Content="123"/>
-                                    <ListBoxItem Content="123"/>
-                                </ListBox>
-                                <TextBlock HorizontalAlignment="Center" Text="Created by telecomadm1145.All rights reversed." FontSize="20" Foreground="#50000000"/>
+                                <TextBlock HorizontalAlignment="Center" Text="Created by telecomadm1145.All rights reversed." FontSize="12" Foreground="#50ffffff"/>
                             </StackPanel>
                         </ScrollViewer>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
