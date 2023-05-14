@@ -640,5 +640,10 @@ namespace osp
                 RandomImg();
             }
         }
+
+        private void Button_Click_15(object sender, RoutedEventArgs e)
+        {
+            RefreshCollections();
+        }
     }
 }

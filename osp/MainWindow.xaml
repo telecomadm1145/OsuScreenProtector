@@ -849,13 +849,18 @@
                 </Border>
             </Grid>
         </Grid>
-        <Grid x:Name="CollectionFlyout" Visibility="Collapsed">
+        <Grid x:Name="CollectionFlyout" Visibility="Collapsed" d:Visibility="Visible">
 
             <Grid Background="#50000000">
                 <Border Width="800" Height="600" Background="#7f000000" CornerRadius="10">
                     <Grid>
                         <TabControl x:Name="Collections">
                         </TabControl>
+                        <!--请在此添加-->
+                        <StackPanel>
+                            
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Content="刷新" Padding="8,5,8,5" Click="Button_Click_13"/>
                         <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Content="X" Padding="8,5,8,5" Click="Button_Click_13"/>
                         <Grid x:Name="CollectionDetailView" Visibility="Collapsed">
                             <Border Background="#7f000000" CornerRadius="10">
