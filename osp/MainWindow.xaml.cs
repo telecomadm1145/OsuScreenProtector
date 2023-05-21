@@ -88,7 +88,7 @@ namespace osp
                 }),
                 new System.Windows.Forms.MenuItem("设置", (s, e) =>
                 {
-                    SettingsFlyout.Visibility = Visibility.Visible;
+                    OpenSettings();
                     Show();
                     Activate();
                 }),
@@ -236,6 +236,8 @@ namespace osp
                 }
             };
         }
+
+        private const string FailedMsg = "密码不正确，凭证错误，加密错误，Windows加密服务已损坏";
         private BassAudioManager bam = new BassAudioManager();
         private static bool HasKeyPressed()
         {
@@ -439,7 +441,8 @@ namespace osp
                 hl4.ToolTip = beatmap.SongPath;
                 span.Inlines.Add(hl4);
                 var hl5 = new Hyperlink(new Run("额外保持10分钟"));
-                hl5.Click += (_, __) => {
+                hl5.Click += (_, __) =>
+                {
                     breaktimer = true;
                     breakduration = TimeSpan.FromMinutes(10);
                 };
@@ -502,10 +505,31 @@ namespace osp
 
         private void Button_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            SettingsFlyout.Visibility = Visibility.Visible;
+            OpenSettings();
             // settings
         }
-        private void PushNotification(string msg, double delay = 5000, Func<TimeSpan, bool> CanClose = null)
+
+        private void OpenSettings()
+        {
+            if (string.IsNullOrEmpty(cfg.SettingPasswordHash))
+            {
+                SettingsFlyout.Visibility = Visibility.Visible;
+                return;
+            }
+            InputBoxPassword("输入密码以打开设置", "", null, (x) =>
+            {
+                if (x.GetSha256() == cfg.SettingPasswordHash)
+                {
+                    SettingsFlyout.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    PushNotification(FailedMsg);
+                }
+            });
+        }
+
+        private void PushNotification(string msg, double delay = 20000, Func<TimeSpan, bool> CanClose = null)
         {
             Logger.Instance.Log(msg);
             var msggrid = new Grid() { Width = 350, MinHeight = 50, Margin = new Thickness(5) };
@@ -517,7 +541,7 @@ namespace osp
                 BorderThickness = new Thickness(.5),
             };
             msggrid.Children.Add(border);
-            msggrid.Children.Add(new TextBlock() { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(10), Foreground = new SolidColorBrush(Colors.White) ,FontSize = 15});
+            msggrid.Children.Add(new TextBlock() { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(10), Foreground = new SolidColorBrush(Colors.White), FontSize = 15 });
             Storyboard autohide = new Storyboard();
             autohide.Completed += (s, e) => NotificationPanel.Children.Remove(msggrid);
             var closeani = new DoubleAnimation() { Duration = TimeSpan.FromSeconds(.5), EasingFunction = new SineEase(), To = 0 };
@@ -556,9 +580,9 @@ namespace osp
         private void Grid_MouseDown(object sender, MouseButtonEventArgs e)
         {
             // clean cache and random img
-            if (e.LeftButton == MouseButtonState.Pressed && e.RightButton == MouseButtonState.Pressed)
+            if (e.RightButton == MouseButtonState.Pressed)
             {
-                log.Log("Switch to random image by pressing left and right");
+                log.Log("Switch to random image by pressing right button");
                 RandomImg();
             }
             else
@@ -714,10 +738,46 @@ namespace osp
                 if (localizedstr.ToLower() == "sukidesu")
                     localizedstr = "我喜欢的";
                 TabItem colpage = new TabItem() { Header = localizedstr };
+                var menu2 = new ContextMenu();
+                if (collection.Name.ToLower() != "sukidesu")
+                {
+                    menu2.Items.Add(new MenuItem()
+                    {
+                        Header = "移除此收藏夹",
+                        Command = Extensions.MakeCommand(_ =>
+                        {
+                            cfg.Collections.Remove(collection);
+                        })
+                    });
+                    menu2.Items.Add(new MenuItem()
+                    {
+                        Header = "重命名此收藏夹",
+                        Command = Extensions.MakeCommand(_ =>
+                        {
+                            InputBox("输入新名字", localizedstr, null, y =>
+                            {
+                                collection.Name = y;
+                                colpage.Header = y;
+                                cfg.Save();
+                            });
+                        })
+                    });
+                }
+                menu2.Items.Add(new MenuItem()
+                {
+                    Header = "清空收藏夹",
+                    Command = Extensions.MakeCommand(_ =>
+                    {
+                        collection.Images.Clear();
+                        cfg.Save();
+                        RefreshCollections();
+                    })
+                });
+                colpage.ContextMenu = menu2;
                 var colpage2 = new ScrollViewer();
                 var colpage2_g = new StackPanel();
                 colpage2.Content = colpage2_g;
-                var colpage2_tb = new TextBox() { MinHeight = 50,HorizontalAlignment = HorizontalAlignment.Stretch};
+                var colpage2_tb = new TextBox() { MinHeight = 50, HorizontalAlignment = HorizontalAlignment.Stretch };
                 colpage2_tb.Text = collection.Description ?? "还没有简介呢，火速写一个";
                 colpage2_tb.AcceptsReturn = true;
                 colpage2_tb.AcceptsTab = true;
@@ -755,15 +815,20 @@ namespace osp
                     container.Children.Add(plain);
                     var menu = new ContextMenu();
                     img.ContextMenu = menu;
-                    menu.Items.Add(new MenuItem() { Header = "移除收藏",Command = Extensions.MakeCommand(__ => {
-                        cover.Visibility = Visibility.Visible;
-                        plain.Visibility = Visibility.Visible;
-                        collection.Images.Remove(x.MapsetId);
-                        log.Log($"Removed {x.Name} from {collection.Name}");
-                    })});
+                    menu.Items.Add(new MenuItem()
+                    {
+                        Header = "移除收藏",
+                        Command = Extensions.MakeCommand(__ =>
+                        {
+                            cover.Visibility = Visibility.Visible;
+                            plain.Visibility = Visibility.Visible;
+                            collection.Images.Remove(x.MapsetId);
+                            log.Log($"Removed {x.Name} from {collection.Name}");
+                        })
+                    });
                     img.MouseDown += (s, e) =>
                     {
-                        if(e.LeftButton != MouseButtonState.Pressed)
+                        if (e.LeftButton != MouseButtonState.Pressed)
                             return;
                         CollectionsBack.Effect = new BlurEffect();
                         Dictionary<Image, string> BackgroundLoadImages2 = new Dictionary<Image, string>();
@@ -830,13 +895,15 @@ namespace osp
                             span.Inlines.Add(new Run("\n"));
                         }
                         var hl4 = new Hyperlink(new Run("切换到这一张\n"));
-                        hl4.Click += (_, __) => {
+                        hl4.Click += (_, __) =>
+                        {
                             cursor = cfg.Caches.IndexOf(x);
                             LoadImg();
                         };
                         span.Inlines.Add(hl4);
                         var hl5 = new Hyperlink(new Run("切换到这一张并额外保持10分钟"));
-                        hl5.Click += (_, __) => {
+                        hl5.Click += (_, __) =>
+                        {
                             cursor = cfg.Caches.IndexOf(x);
                             breaktimer = true;
                             breakduration = TimeSpan.FromMinutes(10);
@@ -845,14 +912,16 @@ namespace osp
                         span.Inlines.Add(hl5);
                         CollectionDetailViewInfo.Inlines.Add(span);
                         CollectionDetailViewOtherImages.Children.Clear();
-                        RemoveCollectionButton.Command = Extensions.MakeCommand(_ => {
+                        RemoveCollectionButton.Command = Extensions.MakeCommand(_ =>
+                        {
                             cover.Visibility = Visibility.Visible;
                             plain.Visibility = Visibility.Visible;
                             collection.Images.Remove(x.MapsetId);
                             log.Log($"Removed {x.Name} from {collection.Name}");
                             Button_Click_17(null, null);
                         });
-                        OpenCollectionPictureButton.Command = Extensions.MakeCommand(_ => {
+                        OpenCollectionPictureButton.Command = Extensions.MakeCommand(_ =>
+                        {
                             var bi = CollectionDetailViewImage.Source as BitmapImage;
                             if (bi != null)
                             {
@@ -864,7 +933,8 @@ namespace osp
                             var img3 = new Image();
                             img3.Height = 80;
                             img3.Margin = new Thickness(3);
-                            img3.MouseDown += (_, __) => {
+                            img3.MouseDown += (_, __) =>
+                            {
                                 CollectionDetailViewImage.Source = bmp.BgPath.LoadImage();
                             };
                             BackgroundLoadImages2.Add(img3, bmp.BgPath);
@@ -994,7 +1064,14 @@ namespace osp
 
         private void Button_Click_16(object sender, RoutedEventArgs e)
         {
-            
+            InputBox("输入新的收藏夹名", "", null, x =>
+            {
+                if (!string.IsNullOrWhiteSpace(x))
+                {
+                    cfg.Collections.Add(new GalleryCollection() { Name = x });
+                    RefreshCollections();
+                }
+            });
         }
 
         private void Button_Click_17(object sender, RoutedEventArgs e)
@@ -1046,10 +1123,11 @@ namespace osp
         {
             if (!string.IsNullOrEmpty(cfg.SettingPasswordHash))
             {
-                InputBoxPassword("输入原密码以重设密码", "", null, (x) => { 
-                    if(cfg.SettingPasswordHash != x.GetSha256())
+                InputBoxPassword("输入原密码以重设密码", "", null, (x) =>
+                {
+                    if (cfg.SettingPasswordHash != x.GetSha256())
                     {
-                        PushNotification("密码不正确，凭证错误，加密错误，Windows加密服务已损坏");
+                        PushNotification(FailedMsg);
                         return;
                     }
                     Extensions.RunLater(ChangeSettingPassword);
@@ -1058,10 +1136,11 @@ namespace osp
             }
             ChangeSettingPassword();
         }
-        
+
         private void ChangeSettingPassword()
         {
-            InputBoxPassword("输入新密码", "", null, (x) => {
+            InputBoxPassword("输入新密码", "", null, (x) =>
+            {
                 log.Log("Password reset!");
                 cfg.SettingPasswordHash = x.GetSha256();
                 cfg.Save();
@@ -1087,21 +1166,23 @@ namespace osp
         {
             Process.Start("https://github.com/telecomadm1145/osuscreenprotector");
         }
-        private void InputBox(string message,string prompt,Action OnCanceled = null,Action<string> OnInputCompleted = null)
+        private void InputBox(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null)
         {
             PasswordBoxInput.Visibility = Visibility.Collapsed;
             InputBoxFlyout.Visibility = Visibility.Visible;
-            CloseButton.Command = Extensions.MakeCommand(_ => {
+            CloseButton.Command = Extensions.MakeCommand(_ =>
+            {
                 if (OnCanceled != null)
-                OnCanceled();
+                    OnCanceled();
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
             InputBoxDesc.Text = message;
             InputBoxInput.Visibility = Visibility.Visible;
             InputBoxInput.Text = prompt;
-            SubmitButton.Command = Extensions.MakeCommand(_ => {
+            SubmitButton.Command = Extensions.MakeCommand(_ =>
+            {
                 if (OnInputCompleted != null)
-                OnInputCompleted(InputBoxInput.Text);
+                    OnInputCompleted(InputBoxInput.Text);
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
         }
@@ -1109,17 +1190,19 @@ namespace osp
         {
             InputBoxInput.Visibility = Visibility.Collapsed;
             InputBoxFlyout.Visibility = Visibility.Visible;
-            CloseButton.Command = Extensions.MakeCommand(_ => {
-            if (OnCanceled != null)
-                OnCanceled();
+            CloseButton.Command = Extensions.MakeCommand(_ =>
+            {
+                if (OnCanceled != null)
+                    OnCanceled();
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
             InputBoxDesc.Text = message;
             PasswordBoxInput.Visibility = Visibility.Visible;
             PasswordBoxInput.Password = prompt;
-            SubmitButton.Command = Extensions.MakeCommand(_ => {
+            SubmitButton.Command = Extensions.MakeCommand(_ =>
+            {
                 if (OnInputCompleted != null)
-                OnInputCompleted(PasswordBoxInput.Password);
+                    OnInputCompleted(PasswordBoxInput.Password);
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
         }
@@ -1128,13 +1211,15 @@ namespace osp
             PasswordBoxInput.Visibility = Visibility.Collapsed;
             InputBoxInput.Visibility = Visibility.Collapsed;
             InputBoxFlyout.Visibility = Visibility.Visible;
-            CloseButton.Command = Extensions.MakeCommand(_ => {
-                if (OnCanceled !=null)
-                OnCanceled();
+            CloseButton.Command = Extensions.MakeCommand(_ =>
+            {
+                if (OnCanceled != null)
+                    OnCanceled();
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
             InputBoxDesc.Text = message;
-            SubmitButton.Command = Extensions.MakeCommand(_ => {
+            SubmitButton.Command = Extensions.MakeCommand(_ =>
+            {
                 if (OnInputCompleted != null)
                     OnInputCompleted();
                 InputBoxFlyout.Visibility = Visibility.Collapsed;

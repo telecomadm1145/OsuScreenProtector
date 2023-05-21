@@ -264,7 +264,7 @@ namespace OsuScreenProtector
             true;
 #endif
         public double Volume { get; set; } = 10;
-        public string SettingPasswordHash { get; set; } = "";
+        public string SettingPasswordHash { get; set; } = null;
     }
 }
 
