@@ -79,48 +79,50 @@ namespace OsuScreenProtector
             {
                 Logger.Instance.Log("Change detected,rebuilding cache...", "Info");
                 // perform update...
-                foreach (var dir in Directory.EnumerateDirectories(songs))
+                foreach (var dir_ in Directory.EnumerateDirectories(songs))
                 {
+                    //var dir = Environment.OSVersion.Version.Major >= 10 ? dir_ : "\\\\?\\" + dir_; // long path aware issue
+                    var dir = "\\\\?\\" + dir_;
                     if (Directory.GetLastWriteTimeUtc(dir) > LastSongsFolderModifiyTime)
-                        if (dir != "Failed")
+                    {
+                        Logger.Instance.Log($"Reading {dir}...", "Info");
+                        var cache = new CacheEntry();
+                        foreach (var dir2 in Directory.EnumerateFiles(dir))
                         {
-                            Logger.Instance.Log($"Reading {dir}...", "Info");
-                            var cache = new CacheEntry();
-                            foreach (var dir2 in Directory.EnumerateFiles(dir))
+                            if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
                             {
-                                if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
+                                using (var sr = new StreamReader(dir2))
                                 {
-                                    using (var sr = new StreamReader(dir2))
+                                    try
                                     {
-                                        try
+                                        var bmp = Beatmap.Parse(sr);
+                                        bmp.SongPath = Path.Combine(dir, bmp.SongPath);
+                                        bmp.BgPath = Path.Combine(dir, bmp.BgPath);
+                                        if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
                                         {
-                                            var bmp = Beatmap.Parse(sr);
-                                            bmp.SongPath = Path.Combine(dir, bmp.SongPath);
-                                            bmp.BgPath = Path.Combine(dir, bmp.BgPath);
-                                            if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
-                                            {
-                                                cache.MapsetId = bmp.MapsetId;
-                                                cache.Name = bmp.Title;
-                                                cache.Beatmaps.Add(bmp);
-                                                Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
-                                            }
-                                            count++;
+                                            cache.MapsetId = bmp.MapsetId;
+                                            cache.Name = bmp.Title;
+                                            cache.Dir = dir;
+                                            cache.Beatmaps.Add(bmp);
+                                            Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
                                         }
-                                        catch
-                                        {
-                                            Logger.Instance.Log($"Failed to process {dir2}.", "Info");
-                                        }
+                                        count++;
+                                    }
+                                    catch
+                                    {
+                                        Logger.Instance.Log($"Failed to process {dir2}.", "Info");
                                     }
                                 }
                             }
-                            var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
-                            if (same != null)
-                            {
-                                Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
-                                Caches.Remove(same);
-                            }
-                            Caches.Add(cache);
                         }
+                        var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
+                        if (same != null)
+                        {
+                            Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
+                            Caches.Remove(same);
+                        }
+                        Caches.Add(cache);
+                    }
                 }
                 Logger.Instance.Log($"Updated or loaded {count} beatmaps");
                 LastSongsFolderModifiyTime = newlast;

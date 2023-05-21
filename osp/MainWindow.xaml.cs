@@ -335,7 +335,7 @@ namespace osp
                     }
                     goto reload;
                 }
-                Bg.Source = new BitmapImage(new Uri(beatmap.BgPath));
+                Bg.Source = beatmap.BgPath.LoadImage();
                 DetailInfoBox.Inlines.Clear();
                 var span = new Span();
                 var inline1 = new Run($"{beatmap.Artist} - {beatmap.Title}\n") { FontSize = 18, ToolTip = $"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}" };
@@ -508,16 +508,16 @@ namespace osp
         private void PushNotification(string msg, double delay = 5000, Func<TimeSpan, bool> CanClose = null)
         {
             Logger.Instance.Log(msg);
-            var msggrid = new Grid() { Width = 300, MinHeight = 50, Margin = new Thickness(5) };
+            var msggrid = new Grid() { Width = 350, MinHeight = 50, Margin = new Thickness(5) };
             var border = new Border()
             {
-                Background = new SolidColorBrush(Colors.Black) { Opacity = .5 },
+                Background = new SolidColorBrush(Colors.Black) { Opacity = .8 },
                 CornerRadius = new CornerRadius(10),
-                BorderBrush = new SolidColorBrush(Colors.Black) { Opacity = .7 },
+                BorderBrush = new SolidColorBrush(Colors.Black) { Opacity = .9 },
                 BorderThickness = new Thickness(.5),
             };
             msggrid.Children.Add(border);
-            msggrid.Children.Add(new TextBlock() { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(10), Foreground = new SolidColorBrush(Colors.White) { Opacity = .7 } });
+            msggrid.Children.Add(new TextBlock() { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(10), Foreground = new SolidColorBrush(Colors.White) ,FontSize = 15});
             Storyboard autohide = new Storyboard();
             autohide.Completed += (s, e) => NotificationPanel.Children.Remove(msggrid);
             var closeani = new DoubleAnimation() { Duration = TimeSpan.FromSeconds(.5), EasingFunction = new SineEase(), To = 0 };
@@ -583,7 +583,10 @@ namespace osp
         {
             var suki = cfg.Collections.Find(x => x.Name.ToLower() == "sukidesu");
             if (suki.Images.Contains(curbmp.MapsetId))
+            {
                 PushNotification($"{curbmp.Title} 已经在收藏品里面了:(");
+                return;
+            }
             suki.Images.Add(curbmp.MapsetId);
             cfg.Save();
             PushNotification($"已将 {curbmp.Title} 加入收藏品:)");
@@ -750,12 +753,22 @@ namespace osp
                     container.Children.Add(img);
                     container.Children.Add(cover);
                     container.Children.Add(plain);
+                    var menu = new ContextMenu();
+                    img.ContextMenu = menu;
+                    menu.Items.Add(new MenuItem() { Header = "移除收藏",Command = Extensions.MakeCommand(__ => {
+                        cover.Visibility = Visibility.Visible;
+                        plain.Visibility = Visibility.Visible;
+                        collection.Images.Remove(x.MapsetId);
+                        log.Log($"Removed {x.Name} from {collection.Name}");
+                    })});
                     img.MouseDown += (s, e) =>
                     {
+                        if(e.LeftButton != MouseButtonState.Pressed)
+                            return;
                         CollectionsBack.Effect = new BlurEffect();
                         Dictionary<Image, string> BackgroundLoadImages2 = new Dictionary<Image, string>();
                         CollectionDetailView.Visibility = Visibility.Visible;
-                        CollectionDetailViewImage.Source = new BitmapImage(new Uri(x.Beatmaps[0].BgPath));
+                        CollectionDetailViewImage.Source = x.Beatmaps[0].BgPath.LoadImage();
                         CollectionDetailViewInfo.Inlines.Clear();
                         var span = new Span();
                         span.Inlines.Add($"{x.Beatmaps[0].Artist} - {x.Beatmaps[0].Title}\n");
@@ -832,13 +845,27 @@ namespace osp
                         span.Inlines.Add(hl5);
                         CollectionDetailViewInfo.Inlines.Add(span);
                         CollectionDetailViewOtherImages.Children.Clear();
+                        RemoveCollectionButton.Command = Extensions.MakeCommand(_ => {
+                            cover.Visibility = Visibility.Visible;
+                            plain.Visibility = Visibility.Visible;
+                            collection.Images.Remove(x.MapsetId);
+                            log.Log($"Removed {x.Name} from {collection.Name}");
+                            Button_Click_17(null, null);
+                        });
+                        OpenCollectionPictureButton.Command = Extensions.MakeCommand(_ => {
+                            var bi = CollectionDetailViewImage.Source as BitmapImage;
+                            if (bi != null)
+                            {
+                                Process.Start(bi.GetImageSourcePath());
+                            }
+                        });
                         foreach (var bmp in x.Beatmaps)
                         {
                             var img3 = new Image();
                             img3.Height = 80;
                             img3.Margin = new Thickness(3);
                             img3.MouseDown += (_, __) => {
-                                CollectionDetailViewImage.Source = new BitmapImage(new Uri(bmp.BgPath));
+                                CollectionDetailViewImage.Source = bmp.BgPath.LoadImage();
                             };
                             BackgroundLoadImages2.Add(img3, bmp.BgPath);
                             CollectionDetailViewOtherImages.Children.Add(img3);
@@ -958,10 +985,6 @@ namespace osp
             {
                 NextImg();
             }
-            else if (e.Key == Key.Enter)
-            {
-                RandomImg();
-            }
         }
 
         private void Button_Click_15(object sender, RoutedEventArgs e)
@@ -1017,6 +1040,31 @@ namespace osp
             {
                 audiostream.Stop();
             }
+        }
+
+        private void Button_Click_19(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Button_Click_20(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Button_Click_21(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Hyperlink_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start("https://github.com/telecomadm1145");
+        }
+
+        private void Hyperlink_Click_1(object sender, RoutedEventArgs e)
+        {
+            Process.Start("https://github.com/telecomadm1145/osuscreenprotector");
         }
     }
 }

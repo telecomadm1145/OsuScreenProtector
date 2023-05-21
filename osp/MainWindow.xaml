@@ -501,7 +501,7 @@
         </ControlTemplate>
         <ControlTemplate x:Key="SliderThumbHorizontalBottom" TargetType="{x:Type Thumb}">
             <Grid UseLayoutRounding="True">
-                <Ellipse x:Name="grip" Width="20" Height="20" Fill="{StaticResource SliderThumb.Static.Background}" Stroke="{StaticResource SliderThumb.Static.Border}" SnapsToDevicePixels="True" StrokeThickness="1" UseLayoutRounding="True"/>
+                <Ellipse x:Name="grip" Width="18" Height="18" Fill="{StaticResource SliderThumb.Static.Background}" UseLayoutRounding="True"/>
             </Grid>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="true">
@@ -543,7 +543,7 @@
                             <RepeatButton Command="{x:Static Slider.IncreaseLarge}" Style="{StaticResource RepeatButtonTransparent}"/>
                         </Track.IncreaseRepeatButton>
                         <Track.Thumb>
-                            <Thumb x:Name="Thumb" Focusable="False" Height="20" OverridesDefaultStyle="True" Template="{StaticResource SliderThumbHorizontalDefault}" VerticalAlignment="Center" Width="20" ToolTip="{TemplateBinding Value}"/>
+                            <Thumb x:Name="Thumb" Focusable="False" Height="20" OverridesDefaultStyle="True" Template="{StaticResource SliderThumbHorizontalDefault}" VerticalAlignment="Center" Width="20" ToolTip="{TemplateBinding Value}" ToolTipService.InitialShowDelay="0"/>
                         </Track.Thumb>
                     </Track>
                 </Grid>
@@ -760,7 +760,7 @@
                 </Style>
             </Grid.Resources>
             <Grid Background="#50000000">
-                <Border Width="600" Height="300" Background="#7f000000" CornerRadius="10">
+                <Border Width="700" Height="500" Background="#7f000000" CornerRadius="10">
                     <Grid>
                         <ScrollViewer Margin="10">
                             <StackPanel>
@@ -806,6 +806,7 @@
                                     <Run Text="时间日期间隙"/>
                                     <Slider x:Name="GapSlider" Minimum="-50" Maximum="50" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="15"/>
                                     <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=GapSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
+                                    
                                 </TextBlock>
                                 <TextBlock Text="音频" FontSize="24"/>
                                 <TextBlock>
@@ -828,8 +829,13 @@
                                 </TextBlock>
                                 <TextBlock Text="维护" FontSize="24"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <Button Content="修改设置密码" Foreground="#a0ff0000" Margin="5" Click="Button_Click_19"/>
+                                    <Button Content="修改收藏密码" Foreground="#a0ff0000" Margin="5" Click="Button_Click_20"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                     <Button Content="重建缓存" Margin="5" Click="Button_Click_3"/>
                                     <Button Content="清除缓存并重建" Margin="5" Click="Button_Click_4"/>
+                                    <Button Content="修复文件夹权限" Foreground="#a0ff0000" Margin="5" Click="Button_Click_21"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                     <Button Content="移除所有不喜欢" Margin="5" Click="Button_Click_6"/>
@@ -839,13 +845,15 @@
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                     <Button Content="强行清除配置文件" Margin="5" Click="Button_Click_8"/>
                                     <Button Content="打开配置文件" Margin="5" Click="Button_Click_9"/>
-                                    <Button Content="关闭程序" Margin="5" Click="Button_Click_10" Foreground="#90ff0000"/>
+                                    <Button Content="关闭程序" Margin="5" Click="Button_Click_10" Foreground="#a0ff0000"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                     <Button Content="显示一条通知" Margin="5" Click="Button_Click_2"/>
                                     <Button Content="停止播放" Margin="5" Click="Button_Click_18"/>
                                 </StackPanel>
-                                <TextBlock HorizontalAlignment="Center" Text="Created by telecomadm1145.All rights reversed." FontSize="12" Foreground="#50ffffff"/>
+                                <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="#50ffffff">
+                                    <Hyperlink Click="Hyperlink_Click_1" ToolTip="https://github.com/telecomadm1145/osuscreenprotector">Created</Hyperlink> by <Hyperlink Click="Hyperlink_Click" ToolTip="https://github.com/telecomadm1145">telecomadm1145</Hyperlink>.All rights reversed.
+                                </TextBlock>
                             </StackPanel>
                         </ScrollViewer>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
@@ -902,8 +910,8 @@
                                         </ScrollViewer>
                                     </Border>
                                     <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
-                                        <Button Content="移除收藏" Margin="5"/>
-                                        <Button Content="打开图片" Margin="5"/>
+                                        <Button Content="移除收藏" Margin="5" x:Name="RemoveCollectionButton"/>
+                                        <Button Content="打开图片" Margin="5" x:Name="OpenCollectionPictureButton"/>
                                         <Button Content="关闭" Margin="5" Click="Button_Click_17"/>
                                     </StackPanel>
                                 </Grid>
@@ -924,12 +932,14 @@
                             <TranslateTransform/>
                         </TransformGroup>
                     </Image.LayoutTransform>
-                    <Image.Effect>
-                        <DropShadowEffect Color="White" ShadowDepth="0" BlurRadius="20"/>
-                    </Image.Effect>
                 </Image>
             </Grid>
         </ScrollViewer>
+        <!--Input box-->
+        <Grid Visibility="Collapsed" d:Visibility="Visible" x:Name="InputBoxFlyout">
+            <Grid Background="#50000000">
+            </Grid>
+        </Grid>
         <ScrollViewer HorizontalAlignment="Left" VerticalAlignment="Top" x:Name="NotificationScroller">
             <StackPanel Margin="10" x:Name="NotificationPanel">
                 <!--flyout-->
