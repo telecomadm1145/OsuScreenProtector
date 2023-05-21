@@ -864,7 +864,7 @@
                 </Border>
             </Grid>
         </Grid>
-        <Grid x:Name="CollectionFlyout" Visibility="Collapsed" d:Visibility="Visible">
+        <Grid x:Name="CollectionFlyout" Visibility="Collapsed">
 
             <Grid Background="#50000000">
                 <Border Width="800" Height="600" Background="#7f000000" CornerRadius="10">
@@ -936,9 +936,22 @@
             </Grid>
         </ScrollViewer>
         <!--Input box-->
-        <Grid Visibility="Collapsed" d:Visibility="Visible" x:Name="InputBoxFlyout">
-            <Grid Background="#50000000">
-            </Grid>
+        <Grid Visibility="Collapsed" x:Name="InputBoxFlyout" Background="#50000000">
+            <Border Width="600" Height="200" Background="#7f000000" CornerRadius="10">
+                <Grid>
+                    <ScrollViewer Margin="-30">
+                        <StackPanel Margin="40">
+                            <TextBlock x:Name="InputBoxDesc" Text="114514"/>
+                            <TextBox x:Name="InputBoxInput" Text=""/>
+                            <PasswordBox x:Name="PasswordBoxInput"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                        <Button Content="确定" Margin="10" x:Name="SubmitButton"/>
+                        <Button Content="关闭" Margin="10" x:Name="CloseButton"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
         <ScrollViewer HorizontalAlignment="Left" VerticalAlignment="Top" x:Name="NotificationScroller">
             <StackPanel Margin="10" x:Name="NotificationPanel">

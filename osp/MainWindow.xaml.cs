@@ -1044,7 +1044,27 @@ namespace osp
 
         private void Button_Click_19(object sender, RoutedEventArgs e)
         {
-
+            if (!string.IsNullOrEmpty(cfg.SettingPasswordHash))
+            {
+                InputBoxPassword("输入原密码以重设密码", "", null, (x) => { 
+                    if(cfg.SettingPasswordHash != x.GetSha256())
+                    {
+                        PushNotification("密码不正确，凭证错误，加密错误，Windows加密服务已损坏");
+                        return;
+                    }
+                    ChangeSettingPassword();
+                });
+                return;
+            }
+            ChangeSettingPassword();
+        }
+        private void ChangeSettingPassword()
+        {
+            InputBoxPassword("输入新密码", "", null, (x) => {
+                log.Log("Password reset!");
+                cfg.SettingPasswordHash = x.GetSha256();
+                cfg.Save();
+            });
         }
 
         private void Button_Click_20(object sender, RoutedEventArgs e)
@@ -1065,6 +1085,59 @@ namespace osp
         private void Hyperlink_Click_1(object sender, RoutedEventArgs e)
         {
             Process.Start("https://github.com/telecomadm1145/osuscreenprotector");
+        }
+        private void InputBox(string message,string prompt,Action OnCanceled = null,Action<string> OnInputCompleted = null)
+        {
+            PasswordBoxInput.Visibility = Visibility.Collapsed;
+            InputBoxFlyout.Visibility = Visibility.Visible;
+            CloseButton.Command = Extensions.MakeCommand(_ => {
+                if (OnCanceled != null)
+                OnCanceled();
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
+            InputBoxDesc.Text = message;
+            InputBoxInput.Visibility = Visibility.Visible;
+            InputBoxInput.Text = prompt;
+            SubmitButton.Command = Extensions.MakeCommand(_ => {
+                if (OnInputCompleted != null)
+                OnInputCompleted(InputBoxInput.Text);
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
+        }
+        private void InputBoxPassword(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null)
+        {
+            InputBoxInput.Visibility = Visibility.Collapsed;
+            InputBoxFlyout.Visibility = Visibility.Visible;
+            CloseButton.Command = Extensions.MakeCommand(_ => {
+            if (OnCanceled != null)
+                OnCanceled();
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
+            InputBoxDesc.Text = message;
+            PasswordBoxInput.Visibility = Visibility.Visible;
+            PasswordBoxInput.Password = prompt;
+            SubmitButton.Command = Extensions.MakeCommand(_ => {
+                if (OnInputCompleted != null)
+                OnInputCompleted(PasswordBoxInput.Password);
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
+        }
+        private void MessageBox(string message, Action OnCanceled = null, Action OnInputCompleted = null)
+        {
+            PasswordBoxInput.Visibility = Visibility.Collapsed;
+            InputBoxInput.Visibility = Visibility.Collapsed;
+            InputBoxFlyout.Visibility = Visibility.Visible;
+            CloseButton.Command = Extensions.MakeCommand(_ => {
+                if (OnCanceled !=null)
+                OnCanceled();
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
+            InputBoxDesc.Text = message;
+            SubmitButton.Command = Extensions.MakeCommand(_ => {
+                if (OnInputCompleted != null)
+                    OnInputCompleted();
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
         }
     }
 }

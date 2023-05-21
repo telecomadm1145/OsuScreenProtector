@@ -290,5 +290,18 @@ namespace osp
                 }
             }
         }
+        public static string GetSha256(this string text)
+        {
+            if (String.IsNullOrEmpty(text))
+                return null;
+
+            using (var sha = new System.Security.Cryptography.SHA256Managed())
+            {
+                byte[] textData = System.Text.Encoding.UTF8.GetBytes(text.ToLower() + "_salt_by_telecomadm1145_and_happy_rainbow_table");
+                byte[] hash = sha.ComputeHash(textData);
+                return BitConverter.ToString(hash.Take(8).ToArray()).Replace("-", "");
+            }
+        }
     }
+
 }
