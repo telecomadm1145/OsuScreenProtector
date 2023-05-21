@@ -1052,12 +1052,13 @@ namespace osp
                         PushNotification("密码不正确，凭证错误，加密错误，Windows加密服务已损坏");
                         return;
                     }
-                    ChangeSettingPassword();
+                    Extensions.RunLater(ChangeSettingPassword);
                 });
                 return;
             }
             ChangeSettingPassword();
         }
+        
         private void ChangeSettingPassword()
         {
             InputBoxPassword("输入新密码", "", null, (x) => {

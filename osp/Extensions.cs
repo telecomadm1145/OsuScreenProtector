@@ -290,6 +290,10 @@ namespace osp
                 }
             }
         }
+        public static void RunLater(this Action x)
+        {
+            Dispatcher.CurrentDispatcher.BeginInvoke(x);
+        }
         public static string GetSha256(this string text)
         {
             if (String.IsNullOrEmpty(text))
