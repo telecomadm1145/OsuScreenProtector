@@ -51,6 +51,20 @@ namespace osp
             {
                 cfg.LogPath = LogPathBox.Text;
             };
+            InputBoxInput.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Enter && !e.Handled)
+                {
+                    SubmitButton.Focus();
+                }
+            };
+            PasswordBoxInput.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Enter && !e.Handled)
+                {
+                    SubmitButton.Focus();
+                }
+            };
             var monitor = new Thread(MonitorLoop);
             monitor.Start(new WindowInteropHelper(this).EnsureHandle()); //贺松鼠
             Loaded += (s, e) =>
@@ -96,7 +110,13 @@ namespace osp
                 {
                     cfg.ShowTray = ni.Visible=false;
                     cfg.Save();
-                })
+                }),
+#if DEBUG
+                new System.Windows.Forms.MenuItem("退出", (s, e) =>
+                {
+                    Extensions.FastQuit();
+                }),
+#endif
             });
             TextBlock current = null;
             var height = .0;
@@ -148,17 +168,26 @@ namespace osp
                 Date.FontSize = cfg.DateFontSize;
                 Date.Margin = new Thickness(0, cfg.TimeDateGap, 0, 0);
 
-                if (audiostream != null && audiostream.Stopped)
+                if (audiostream != null && audiostream.Stopped && cfg.Loop)
                 {
                     audiostream.Play();
+                }
+                if (audiostream != null && !audiostream.Playing && !cfg.Loop)
+                {
+                    audiostream = null;
+                    np = null;
                 }
                 if (onp != np)
                 {
                     Beatmap np_c = np;
+                    StopPlayButton.Visibility = np != null && cfg.ShowStopButton ? Visibility.Visible : Visibility.Collapsed;
                     if (np != null)
+                    {
                         PushNotification($"Now playing {np.Artist} - {np.Title}", double.MaxValue, (x) => np != np_c);
+                    }
                     onp = np;
                 }
+                stoptimer = DetailInfo.IsVisible;
             };
             dt.Start();
             var trigonce = new Thread(() =>
@@ -235,8 +264,53 @@ namespace osp
                     audiostream.Volume = cfg.Volume / 100;
                 }
             };
+            RoutedEventHandler t4 = (_, __) =>
+            {
+                cfg.Loop = AudioLoopCheckbox.IsChecked.Value;
+            };
+            AudioLoopCheckbox.Checked += t4;
+            AudioLoopCheckbox.Unchecked += t4;
+
+            RandomOrderCheckbox.IsChecked = cfg.RandomOrder;
+            RoutedEventHandler t5 = (_, __) =>
+            {
+                cfg.RandomOrder = RandomOrderCheckbox.IsChecked.Value;
+            };
+            RandomOrderCheckbox.Checked += t5;
+            RandomOrderCheckbox.Unchecked += t5;
+
+            ShowStopButtonCheckbox.IsChecked = cfg.ShowStopButton;
+            RoutedEventHandler t6 = (_, __) =>
+            {
+                cfg.ShowStopButton = ShowStopButtonCheckbox.IsChecked.Value;
+                if (!cfg.ShowStopButton)
+                {
+                    StopPlayButton.Visibility = Visibility.Collapsed;
+                }
+                else if (np != null)
+                {
+                    StopPlayButton.Visibility = Visibility.Visible;
+                }
+            };
+            ShowStopButtonCheckbox.Checked += t6;
+            ShowStopButtonCheckbox.Unchecked += t6;
+
+            BgDimSlider.Value = cfg.BackgroundDim;
+            BgDimSlider.ValueChanged += (_, __) =>
+            {
+                cfg.BackgroundDim = BgDimSlider.Value;
+                UpdateBgDim();
+            };
+            UpdateBgDim();
         }
 
+        private void UpdateBgDim()
+        {
+            var sb = (SolidColorBrush)BgDimOverlay.Fill;
+            sb.Opacity = Math.Abs(cfg.BackgroundDim / 100);
+            sb.Color = cfg.BackgroundDim > 0 ? Color.FromArgb(255, 0, 0, 0) : Color.FromArgb(255, 255, 255, 255);
+        }
+        private bool stoptimer = false;
         private const string FailedMsg = "密码不正确，凭证错误，加密错误，Windows加密服务已损坏";
         private BassAudioManager bam = new BassAudioManager();
         private static bool HasKeyPressed()
@@ -265,6 +339,10 @@ namespace osp
                     breaktimer = false;
                     breakduration = default;
                 }
+                if (stoptimer)
+                {
+                    lastnext = elapsed + (elapsed - lastnext > TimeSpan.Zero ? elapsed - lastnext : TimeSpan.Zero);
+                }
                 if (!IsWin32WindowVisble(rmw))
                 {
                     bool key = HasKeyPressed();
@@ -280,7 +358,27 @@ namespace osp
                     AudioMixerHelper.SetMasterVolume(1);
                     lastaction = elapsed;
                 }
-
+                var hwnd = Extensions.GetForegroundWindow();
+                if (hwnd != IntPtr.Zero && hwnd != Extensions.GetShellWindow() && hwnd != Extensions.GetDesktopWindow())
+                {
+                    Extensions.RECT scrsz;
+                    if (Extensions.GetWindowRect(Extensions.GetDesktopWindow(), out scrsz))
+                    {
+                        Extensions.RECT foreg;
+                        if (Extensions.GetWindowRect(Extensions.GetForegroundWindow(), out foreg))
+                        {
+                            // 多屏幕就等会了（
+                            if (foreg.Left.PixelLikely(scrsz.Left) && foreg.Top.PixelLikely(scrsz.Top)
+                            && foreg.Bottom.PixelLikely(scrsz.Bottom) && foreg.Right.PixelLikely(scrsz.Right))
+                            {
+                                lastaction = elapsed;
+                            }
+                        }
+                    }
+                    else
+                    {
+                    }
+                }
                 if ((elapsed - lastaction).TotalMinutes > cfg.AutoOpenMin)
                 {
                     log.Log($"Automatic shows atfer {(elapsed - lastaction).TotalSeconds}s.(config:{cfg.AutoOpenMin})");
@@ -289,8 +387,11 @@ namespace osp
                 }
                 if ((elapsed - lastnext).TotalMinutes > cfg.AutoNextMin)
                 {
-                    log.Log($"Switch to next image after {(elapsed - lastnext).TotalSeconds}s.(config:{cfg.AutoNextMin})");
-                    Dispatcher.Invoke(NextImg);
+                    log.Log($"Switch to {(cfg.RandomOrder ? "random" : "next")} image after {(elapsed - lastnext).TotalSeconds}s.(config:{cfg.AutoNextMin})");
+                    if (cfg.RandomOrder)
+                        Dispatcher.Invoke(RandomImg);
+                    else
+                        Dispatcher.Invoke(NextImg);
                     lastnext = elapsed;
                 }
                 AudioMixerHelper.SetAppMasterVolume(1);
@@ -472,23 +573,27 @@ namespace osp
         }
         private void NextImg()
         {
-            log.Log("");
+            breaktimer = true;
             cursor++;
             if (cursor >= cfg.Caches.Count)
                 cursor = 0;
+            log.Log($"{cursor}/{cfg.Caches.Count}");
             LoadImg();
         }
         private void PrevImg()
         {
-            log.Log("");
+            breaktimer = true;
             cursor--;
             if (cursor < 0)
                 cursor = cfg.Caches.Count;
+            log.Log($"{cursor}/{cfg.Caches.Count}");
             LoadImg(false);
         }
         private void RandomImg()
         {
+            breaktimer = true;
             cursor = random.Next(0, cfg.Caches.Count);
+            log.Log($"{cursor}/{cfg.Caches.Count}");
             LoadImg();
         }
         private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -687,7 +792,7 @@ namespace osp
         private void Button_Click_10(object sender, RoutedEventArgs e)
         {
             cfg.Save();
-            Environment.Exit(0);
+            Extensions.FastQuit();
         }
 
         private void Button_Click_11(object sender, RoutedEventArgs e)
@@ -697,10 +802,26 @@ namespace osp
             collections.ForEach(x => cfg.Collections.Remove(x));
             PushNotification($"删除了{count}个空收藏夹");
         }
-
+        private void OpenCollections()
+        {
+            if (cfg.CollectionPasswordHash != null)
+            {
+                InputBoxPassword("输入密码打开收藏", "", null, x =>
+                {
+                    if (cfg.CollectionPasswordHash == x.GetSha256() || cfg.SettingPasswordHash == x.GetSha256())
+                    {
+                        CollectionFlyout.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    PushNotification(FailedMsg);
+                });
+                return;
+            }
+            CollectionFlyout.Visibility = Visibility.Visible;
+        }
         private void Button_Click_12(object sender, RoutedEventArgs e)
         {
-            CollectionFlyout.Visibility = Visibility.Visible;
+            OpenCollections();
         }
 
         private void Button_Click_13(object sender, RoutedEventArgs e)
@@ -1116,6 +1237,8 @@ namespace osp
             if (audiostream != null && audiostream.Playing)
             {
                 audiostream.Stop();
+                audiostream = null;
+                np = null;
             }
         }
 
@@ -1125,7 +1248,7 @@ namespace osp
             {
                 InputBoxPassword("输入原密码以重设密码", "", null, (x) =>
                 {
-                    if (cfg.SettingPasswordHash != x.GetSha256())
+                    if (cfg.SettingPasswordHash != x.GetSha256() && string.IsNullOrWhiteSpace(x))
                     {
                         PushNotification(FailedMsg);
                         return;
@@ -1141,15 +1264,39 @@ namespace osp
         {
             InputBoxPassword("输入新密码", "", null, (x) =>
             {
-                log.Log("Password reset!");
+                log.Log("Settings password reset!");
                 cfg.SettingPasswordHash = x.GetSha256();
                 cfg.Save();
+                PushNotification("设置密码已更改");
+            });
+        }
+        private void ChangeCollectionPassword()
+        {
+            InputBoxPassword("输入新密码", "", null, (x) =>
+            {
+                log.Log("Collection password reset!");
+                cfg.CollectionPasswordHash = x.GetSha256();
+                cfg.Save();
+                PushNotification("收藏密码已更改");
             });
         }
 
         private void Button_Click_20(object sender, RoutedEventArgs e)
         {
-
+            if (cfg.CollectionPasswordHash != null || cfg.SettingPasswordHash != null)
+            {
+                InputBoxPassword("输入原密码或设置密码以重设密码", "", null, (x) =>
+                {
+                    if (cfg.SettingPasswordHash != x.GetSha256() && cfg.CollectionPasswordHash != x.GetSha256() && string.IsNullOrWhiteSpace(x))
+                    {
+                        PushNotification(FailedMsg);
+                        return;
+                    }
+                    Extensions.RunLater(ChangeCollectionPassword);
+                });
+                return;
+            }
+            ChangeCollectionPassword();
         }
 
         private void Button_Click_21(object sender, RoutedEventArgs e)
@@ -1179,6 +1326,7 @@ namespace osp
             InputBoxDesc.Text = message;
             InputBoxInput.Visibility = Visibility.Visible;
             InputBoxInput.Text = prompt;
+            InputBoxInput.Focus();
             SubmitButton.Command = Extensions.MakeCommand(_ =>
             {
                 if (OnInputCompleted != null)
@@ -1199,6 +1347,7 @@ namespace osp
             InputBoxDesc.Text = message;
             PasswordBoxInput.Visibility = Visibility.Visible;
             PasswordBoxInput.Password = prompt;
+            PasswordBoxInput.Focus();
             SubmitButton.Command = Extensions.MakeCommand(_ =>
             {
                 if (OnInputCompleted != null)
@@ -1218,12 +1367,18 @@ namespace osp
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
             InputBoxDesc.Text = message;
+            SubmitButton.Focus();
             SubmitButton.Command = Extensions.MakeCommand(_ =>
             {
                 if (OnInputCompleted != null)
                     OnInputCompleted();
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
+        }
+
+        private void Button_Click_22(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

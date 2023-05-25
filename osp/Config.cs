@@ -265,6 +265,11 @@ namespace OsuScreenProtector
 #endif
         public double Volume { get; set; } = 10;
         public string SettingPasswordHash { get; set; } = null;
+        public string CollectionPasswordHash {get;set;} = null;
+        public bool RandomOrder {get;set;} = false;
+        public bool Loop{get;set;} = true;
+        public bool ShowStopButton {get;set;} = true;
+        public double BackgroundDim{get;set;} = 0.2;
     }
 }
 

@@ -75,6 +75,12 @@ namespace osp
                 activedscrollviewer = null;
             }
         }
+        [DllImport("kernel32.dll")]
+        private static extern void ExitProcess(int exitcode);
+        public static void FastQuit(int exitcode = 0)
+        {
+ExitProcess(exitcode);
+        }
         private static void OnSwMouseMove(object d, MouseEventArgs e)
         {
             if (activedscrollviewer != null)

@@ -10,10 +10,6 @@
         RenderOptions.BitmapScalingMode="Linear" TextOptions.TextHintingMode="Fixed" TextOptions.TextRenderingMode="Aliased"
     xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2" KeyDown="Window_PreviewKeyDown">
     <Window.Resources>
-        <Style TargetType="ContentControl">
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-        </Style>
         <Style TargetType="ListBoxItem">
             <Setter Property="Background" Value="{x:Null}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
@@ -34,6 +30,7 @@
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         </Style>
         <Style TargetType="TextBlock">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="LineHeight" Value="20"/>
             <Setter Property="Foreground" Value="White"/>
         </Style>
@@ -180,7 +177,7 @@
                             </Grid.ColumnDefinitions>
                             <Border CornerRadius="5" x:Name="checkBoxBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="1" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
                                 <Grid x:Name="markGrid">
-                                    <Path x:Name="optionMark" Data="M 1,1 L 9,1 9,9 1,9 Z" MinWidth="10" MinHeight="10" Fill="{StaticResource OptionMark.Static.Glyph}" Margin="1" Opacity="0" Stretch="None"/>
+                                    <Ellipse x:Name="optionMark" Width="8" Height="8" Fill="{StaticResource OptionMark.Static.Glyph}" Margin="2" Opacity="0"/>
                                     <Rectangle x:Name="indeterminateMark" Fill="{StaticResource OptionMark.Static.Glyph}" Margin="2" Opacity="0"/>
                                 </Grid>
                             </Border>
@@ -720,7 +717,11 @@
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
+        <Style TargetType="Hyperlink">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        </Style>
         <Style TargetType="{x:Type Slider}">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
@@ -760,33 +761,47 @@
                 <ColumnDefinition Width="auto"/>
             </Grid.ColumnDefinitions>
             <Grid Grid.ColumnSpan="3" MouseDown="Grid_MouseDown">
-                <Image x:Name="Bg" Stretch="UniformToFill" StretchDirection="Both"/>
-                <Rectangle Fill="#50000000"/>
+                <Image x:Name="Bg" Stretch="UniformToFill"  VerticalAlignment="Center" HorizontalAlignment="Center"  StretchDirection="Both"/>
+                <Rectangle Fill="#50000000" x:Name="BgDimOverlay"/>
             </Grid>
             <Grid Width="40" Background="#01000000" MouseLeftButtonDown="Grid_MouseLeftButtonDown_1"/>
             <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="0,80,0,0">
+                <StackPanel.Effect>
+                    <DropShadowEffect ShadowDepth="0" Opacity="0.5" BlurRadius="10"/>
+                </StackPanel.Effect>
                 <TextBlock Text="%Time%" HorizontalAlignment="Center" FontSize="65" x:Name="Time" Foreground="White" FontFamily="Segoe UI" FontWeight="SemiBold"/>
                 <TextBlock Text="%Date%" HorizontalAlignment="Center" FontSize="35" x:Name="Date" Foreground="White"/>
             </StackPanel>
             <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,20">
-                <TextBlock Text="点我查看图片相关信息" HorizontalAlignment="Center" FontSize="20" Foreground="#30ffffff" Background="#01000000" Margin="5" MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"/>
+                <StackPanel.Effect>
+                    <DropShadowEffect ShadowDepth="0" Opacity="1" BlurRadius="10"/>
+                </StackPanel.Effect>
+                <TextBlock Text="点我查看图片相关信息" HorizontalAlignment="Center" FontSize="20" Foreground="#a0ffffff" Margin="5" MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"/>
             </StackPanel>
             <Grid Width="40" Grid.Column="2" Background="#01000000" MouseLeftButtonDown="Grid_MouseLeftButtonDown"/>
-            <Border Grid.ColumnSpan="3" VerticalAlignment="Top" HorizontalAlignment="Right" CornerRadius="5" Margin="5">
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="不喜欢" Margin="5" FontSize="15" Click="Button_Click_14" Background="Transparent"/>
-                    <Button Content="喜欢" Margin="5" FontSize="15" Click="Button_Click" Background="Transparent"/>
-                    <Button Content="设置" Margin="5" FontSize="15" MouseDoubleClick="Button_MouseDoubleClick" Background="Transparent"/>
-                    <Button Content="收藏品" Margin="5" FontSize="15" Click="Button_Click_12" Background="Transparent"/>
-                    <Button Content="退出锁屏" Margin="5" FontSize="15" Click="Button_MouseLeftButtonDown_1"/>
-                </StackPanel>
-            </Border>
+            <StackPanel Orientation="Horizontal" Grid.ColumnSpan="3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5">
+                <StackPanel.Effect>
+                    <DropShadowEffect ShadowDepth="0" Opacity="0.8" BlurRadius="10"/>
+                </StackPanel.Effect>
+                <Button Margin="5" FontSize="15" Content="市场" Background="Transparent" Click="Button_Click_22" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Grid.ColumnSpan="3" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="5">
+                <StackPanel.Effect>
+                    <DropShadowEffect ShadowDepth="0" Opacity="0.8" BlurRadius="10"/>
+                </StackPanel.Effect>
+                <Button Content="停止播放" Margin="5" FontSize="15" Click="Button_Click_18" x:Name="StopPlayButton" Visibility="Collapsed" Background="Transparent"/>
+                <Button Content="不喜欢" Margin="5" FontSize="15" Click="Button_Click_14" Background="Transparent"/>
+                <Button Content="喜欢" Margin="5" FontSize="15" Click="Button_Click" Background="Transparent"/>
+                <Button Content="设置" Margin="5" FontSize="15" MouseDoubleClick="Button_MouseDoubleClick" Background="Transparent"/>
+                <Button Content="收藏品" Margin="5" FontSize="15" Click="Button_Click_12" Background="Transparent"/>
+                <Button Content="退出锁屏" Margin="5" FontSize="15" Click="Button_MouseLeftButtonDown_1"/>
+            </StackPanel>
         </Grid>
         <Grid x:Name="DetailInfo" Visibility="Collapsed">
             <Grid Background="#50000000">
                 <Border Width="500" Height="300" Background="#7f000000" CornerRadius="10">
                     <Grid>
-                        <TextBlock x:Name="DetailInfoBox" Margin="10" TextWrapping="Wrap" Foreground="#cfffffff"/>
+                        <TextBlock x:Name="DetailInfoBox" Margin="10" TextWrapping="Wrap" Foreground="#cfffffff" FontSize="15" LineHeight="20"/>
                         <Button Content="Ok." Margin="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Click="Button_MouseLeftButtonDown_2" Padding="5"/>
                     </Grid>
                 </Border>
@@ -803,8 +818,8 @@
             <Grid Background="#50000000">
                 <Border Width="700" Height="500" Background="#7f000000" CornerRadius="10">
                     <Grid>
-                        <ScrollViewer Margin="10">
-                            <StackPanel>
+                        <ScrollViewer>
+                            <StackPanel Margin="10">
                                 <TextBlock Text="基本" FontSize="24"/>
                                 <TextBlock>
                                     <Run Text="Osu路径 "/>
@@ -846,13 +861,17 @@
                                     <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=TimeFontSizeSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/><LineBreak/>
                                     <Run Text="时间日期间隙"/>
                                     <Slider x:Name="GapSlider" Minimum="-50" Maximum="50" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="15"/>
-                                    <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=GapSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
-                                    
+                                    <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=GapSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/><LineBreak/>
+                                    背景暗化
+                                    <Slider x:Name="BgDimSlider" Minimum="-100" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="15"/>
+                                    <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=BgDimSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
                                 </TextBlock>
                                 <TextBlock Text="音频" FontSize="24"/>
                                 <TextBlock>
                                     音量<LineBreak/>
-                                    <Slider Width="200" Minimum="0" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" x:Name="VolumeSlider"/>
+                                    <Slider Width="200" Minimum="0" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" x:Name="VolumeSlider"/><LineBreak/>
+                                    循环播放 <CheckBox x:Name="AudioLoopCheckbox" TextBlock.BaselineOffset="12"/><LineBreak/>
+                                    显示"停止"按钮 <CheckBox x:Name="ShowStopButtonCheckbox" TextBlock.BaselineOffset="12"/>
                                 </TextBlock>
                                 <TextBlock Text="定时" FontSize="24"/>
                                 <TextBlock>
@@ -866,7 +885,8 @@
                                     <InlineUIContainer>
                                         <TextBox Width="40" Height="20" TextBlock.BaselineOffset="14" x:Name="AutoNextBox" MaxLength="10" MaxLines="1" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/>
                                     </InlineUIContainer>
-                                    <Run Text=" 分钟自动下一张"/>
+                                    <Run Text=" 分钟自动下一张"/><LineBreak/>
+                                    随机图片 <CheckBox x:Name="RandomOrderCheckbox" TextBlock.BaselineOffset="12"/>
                                 </TextBlock>
                                 <TextBlock Text="维护" FontSize="24"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
