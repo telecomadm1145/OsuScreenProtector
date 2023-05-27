@@ -56,13 +56,16 @@ namespace OsuScreenProtector
             sw.Dispose();
             fs.Dispose();
         }
-
+        public event EventHandler<string> LogHook;
         public void Log(string message, string category = "Debug", [CallerMemberName] string caller = null, [CallerLineNumber] int linenum = 0)
         {
             var msg = $"[{DateTime.Now}][{category}]({caller}:{linenum}){message}\n";
             if (sw != null && sw.BaseStream != null && sw.BaseStream.CanWrite)
                 sw.Write(msg);
-            Console.Write(msg);
+            if (LogHook != null)
+            {
+                LogHook(this, msg);
+            }
         }
 
         public void Flush()

@@ -114,6 +114,7 @@ namespace osp
 #if DEBUG
                 new System.Windows.Forms.MenuItem("退出", (s, e) =>
                 {
+                    cfg.SaveImmediately();
                     Extensions.FastQuit();
                 }),
 #endif
@@ -414,16 +415,47 @@ namespace osp
         private Config.Beatmap curbmp;
         private IAudioStream audiostream;
         private Config.Beatmap np;
+        private bool loading = false;
         private void LoadImg(bool next = true)
         {
-        reload:
-            log.Log("loading img.");
-            try
+            if (loading)
             {
-                Config.Beatmap beatmap = cfg.Caches[cursor].Beatmaps.Random();
-                if (cfg.DislikedImage.Contains(beatmap.MapsetId))
+                log.Log("wont load until last call finishes.");
+                return;
+            }
+            loading = true;
+            log.Log("loading img.");
+            Task.Run(() => {
+            reload:
+                Config.Beatmap beatmap = null;
+                ImageSource imageSource = null;
+                var cursor = this.cursor;
+                try
                 {
-                    log.Log($"{beatmap.Title} disliked.random to {(next ? "next" : "prev")}.");
+                    beatmap = cfg.Caches[cursor].Beatmaps.Random();
+                    if (cfg.DislikedImage.Contains(beatmap.MapsetId))
+                    {
+                        log.Log($"{beatmap.Title} disliked.random to {(next ? "next" : "prev")}.");
+                        if (next)
+                        {
+                            cursor++;
+                            if (cursor >= cfg.Caches.Count)
+                                cursor = 0;
+                        }
+                        else
+                        {
+                            cursor--;
+                            if (cursor < 0)
+                                cursor = cfg.Caches.Count;
+                        }
+                        goto reload;
+                    }
+                    imageSource = beatmap.BgPath.LoadImage();
+                    imageSource.Freeze();
+                }
+                catch
+                {
+                    log.Log($"Unable to read bmp at {cursor}.Switch to {(next ? "next" : "prev")}.");
                     if (next)
                     {
                         cursor++;
@@ -438,138 +470,130 @@ namespace osp
                     }
                     goto reload;
                 }
-                Bg.Source = beatmap.BgPath.LoadImage();
-                DetailInfoBox.Inlines.Clear();
-                var span = new Span();
-                var inline1 = new Run($"{beatmap.Artist} - {beatmap.Title}\n") { FontSize = 18, ToolTip = $"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}" };
+                Dispatcher.BeginInvoke((Action)(() => {
+                    Bg.Source = imageSource;
+                    DetailInfoBox.Inlines.Clear();
+                    var span = new Span();
+                    var inline1 = new Run($"{beatmap.Artist} - {beatmap.Title}\n") { FontSize = 18, ToolTip = $"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}" };
 
-                ContextMenu ctx = new ContextMenu();
-                MenuItem copy1 = new MenuItem() { Header = "复制全称" };
-                copy1.Click += (s, e) => Clipboard.SetText($"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}");
-                ctx.Items.Add(copy1);
-                MenuItem copy2 = new MenuItem() { Header = "复制全称(罗马音)" };
-                copy2.Click += (s, e) => Clipboard.SetText($"{beatmap.Artist} - {beatmap.Title}");
-                ctx.Items.Add(copy2);
-                MenuItem copy3 = new MenuItem() { Header = "复制标题" };
-                copy3.Click += (s, e) => Clipboard.SetText(beatmap.TitleUnicode);
-                ctx.Items.Add(copy3);
-                MenuItem copy4 = new MenuItem() { Header = "复制标题(罗马音)" };
-                copy4.Click += (s, e) => Clipboard.SetText(beatmap.Title);
-                ctx.Items.Add(copy4);
-                MenuItem copy5 = new MenuItem() { Header = "复制艺术家" };
-                copy5.Click += (s, e) => Clipboard.SetText(beatmap.ArtistUnicode);
-                ctx.Items.Add(copy5);
-                MenuItem copy6 = new MenuItem() { Header = "复制艺术家(罗马音)" };
-                copy6.Click += (s, e) => Clipboard.SetText(beatmap.Artist);
-                ctx.Items.Add(copy6);
-                if (beatmap.MapsetId != -1 && beatmap.Id != 0)
-                {
-                    MenuItem copy7 = new MenuItem() { Header = "复制Id" };
-                    copy7.Click += (s, e) => Clipboard.SetText(beatmap.MapsetId.ToString());
-                    ctx.Items.Add(copy7);
-                    MenuItem open1 = new MenuItem() { Header = "在浏览器打开" };
-                    open1.Click += (s, e) => Process.Start($"https://osu.ppy.sh/b/{beatmap.Id}");
-                    ctx.Items.Add(open1);
-                    MenuItem open2 = new MenuItem() { Header = "在应用内打开" };
-                    open2.Click += (s, e) => Process.Start($"osu://b/{beatmap.Id}");
-                    ctx.Items.Add(open2);
-                }
-                inline1.ContextMenu = ctx;
-                span.Inlines.Add(inline1);
-                var hl = new Hyperlink(new Run("点我查看图片\n"));
-                hl.Click += (s, e) => { Topmost = false; Process.Start(beatmap.BgPath); };
-                hl.ToolTip = beatmap.BgPath;
-                span.Inlines.Add(hl);
-                if (!string.IsNullOrWhiteSpace(beatmap.SongPath) && bam != null)
-                {
-                    var hl2 = new Hyperlink(new Run("点我播放 "));
-                    var hl3 = new Hyperlink(new Run("点我停止\n"));
-                    var dt = new DispatcherTimer();
-                    dt.Interval = TimeSpan.FromMilliseconds(1);
-                    var progress = new Slider();
-                    progress.Width = 200;
-                    progress.Maximum = 0;
-                    progress.Value = 0;
-                    progress.TickFrequency = 10;
-                    progress.Visibility = Visibility.Collapsed;
-                    progress.TickPlacement = System.Windows.Controls.Primitives.TickPlacement.BottomRight;
-                    progress.ValueChanged += (s, e) =>
+                    ContextMenu ctx = new ContextMenu();
+                    MenuItem copy1 = new MenuItem() { Header = "复制全称" };
+                    copy1.Click += (s, e) => Clipboard.SetText($"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}");
+                    ctx.Items.Add(copy1);
+                    MenuItem copy2 = new MenuItem() { Header = "复制全称(罗马音)" };
+                    copy2.Click += (s, e) => Clipboard.SetText($"{beatmap.Artist} - {beatmap.Title}");
+                    ctx.Items.Add(copy2);
+                    MenuItem copy3 = new MenuItem() { Header = "复制标题" };
+                    copy3.Click += (s, e) => Clipboard.SetText(beatmap.TitleUnicode);
+                    ctx.Items.Add(copy3);
+                    MenuItem copy4 = new MenuItem() { Header = "复制标题(罗马音)" };
+                    copy4.Click += (s, e) => Clipboard.SetText(beatmap.Title);
+                    ctx.Items.Add(copy4);
+                    MenuItem copy5 = new MenuItem() { Header = "复制艺术家" };
+                    copy5.Click += (s, e) => Clipboard.SetText(beatmap.ArtistUnicode);
+                    ctx.Items.Add(copy5);
+                    MenuItem copy6 = new MenuItem() { Header = "复制艺术家(罗马音)" };
+                    copy6.Click += (s, e) => Clipboard.SetText(beatmap.Artist);
+                    ctx.Items.Add(copy6);
+                    if (beatmap.MapsetId != -1 && beatmap.Id != 0)
                     {
-                        if (audiostream != null && Math.Abs(audiostream.Current.TotalSeconds - progress.Value) > 0.1)
+                        MenuItem copy7 = new MenuItem() { Header = "复制Id" };
+                        copy7.Click += (s, e) => Clipboard.SetText(beatmap.MapsetId.ToString());
+                        ctx.Items.Add(copy7);
+                        MenuItem open1 = new MenuItem() { Header = "在浏览器打开" };
+                        open1.Click += (s, e) => Process.Start($"https://osu.ppy.sh/b/{beatmap.Id}");
+                        ctx.Items.Add(open1);
+                        MenuItem open2 = new MenuItem() { Header = "在应用内打开" };
+                        open2.Click += (s, e) => Process.Start($"osu://b/{beatmap.Id}");
+                        ctx.Items.Add(open2);
+                    }
+                    inline1.ContextMenu = ctx;
+                    span.Inlines.Add(inline1);
+                    var hl = new Hyperlink(new Run("点我查看图片\n"));
+                    hl.Click += (s, e) => { Topmost = false; Process.Start(beatmap.BgPath); };
+                    hl.ToolTip = beatmap.BgPath;
+                    span.Inlines.Add(hl);
+                    if (!string.IsNullOrWhiteSpace(beatmap.SongPath) && bam != null)
+                    {
+                        var hl2 = new Hyperlink(new Run("点我播放 "));
+                        var hl3 = new Hyperlink(new Run("点我停止\n"));
+                        var dt = new DispatcherTimer();
+                        dt.Interval = TimeSpan.FromMilliseconds(1);
+                        var progress = new Slider();
+                        progress.Width = 200;
+                        progress.Maximum = 0;
+                        progress.Value = 0;
+                        progress.TickFrequency = 10;
+                        progress.Visibility = Visibility.Collapsed;
+                        progress.TickPlacement = System.Windows.Controls.Primitives.TickPlacement.BottomRight;
+                        progress.ValueChanged += (s, e) =>
                         {
-                            var p = TimeSpan.FromSeconds(progress.Value);
-                            if (p < audiostream.Duration)
-                                audiostream.Current = p;
-                        }
-                    };
-                    progress.Unloaded += (_, __) => dt.Stop();
-                    dt.Tick += (s, e) => { if (audiostream != null) progress.Value = audiostream.Current.TotalSeconds; };
-                    dt.Start();
-                    TextBlock.SetBaselineOffset(progress, 14);
-                    hl2.Click += (s, e) =>
-                    {
-                        if (audiostream != null)
+                            if (audiostream != null && Math.Abs(audiostream.Current.TotalSeconds - progress.Value) > 0.1)
+                            {
+                                var p = TimeSpan.FromSeconds(progress.Value);
+                                if (p < audiostream.Duration)
+                                    audiostream.Current = p;
+                            }
+                        };
+                        progress.Unloaded += (_, __) => dt.Stop();
+                        dt.Tick += (s, e) => { if (audiostream != null) progress.Value = audiostream.Current.TotalSeconds; };
+                        dt.Start();
+                        TextBlock.SetBaselineOffset(progress, 14);
+                        hl2.Click += (s, e) =>
+                        {
+                            if (audiostream != null)
+                            {
+                                var as_ = audiostream;
+                                audiostream = null;
+                                as_.Stop();
+                            }
+                            np = beatmap;
+                            var channel = bam.Load(File.OpenRead(beatmap.SongPath));
+                            audiostream = channel;
+                            audiostream.Volume = cfg.Volume / 100;
+                            audiostream.Play();
+                            progress.Maximum = Math.Round(audiostream.Duration.TotalSeconds);
+                            audiostream.Current = TimeSpan.FromMilliseconds(beatmap.PreviewPoint == -1 || beatmap.PreviewPoint == 0 ? audiostream.Duration.TotalMilliseconds / 3 : beatmap.PreviewPoint);
+                            progress.Visibility = Visibility.Visible;
+                            hl3.IsEnabled = true;
+                        };
+                        hl3.Click += (s, e) =>
                         {
                             var as_ = audiostream;
                             audiostream = null;
                             as_.Stop();
-                        }
-                        np = beatmap;
-                        var channel = bam.Load(File.OpenRead(beatmap.SongPath));
-                        audiostream = channel;
-                        audiostream.Volume = cfg.Volume / 100;
-                        audiostream.Play();
-                        progress.Maximum = Math.Round(audiostream.Duration.TotalSeconds);
-                        audiostream.Current = TimeSpan.FromMilliseconds(beatmap.PreviewPoint == -1 || beatmap.PreviewPoint == 0 ? audiostream.Duration.TotalMilliseconds / 3 : beatmap.PreviewPoint);
-                        progress.Visibility = Visibility.Visible;
-                        hl3.IsEnabled = true;
-                    };
-                    hl3.Click += (s, e) =>
+                            np = null;
+                        };
+                        hl3.IsEnabled = false;
+                        span.Inlines.Add(hl2);
+                        span.Inlines.Add(hl3);
+                        span.Inlines.Add(progress);
+                        span.Inlines.Add(new Run("\n"));
+                    }
+                    var hl4 = new Hyperlink(new Run("点我打开音频\n"));
+                    hl4.Click += (s, e) => { Topmost = false; Process.Start(beatmap.SongPath); };
+                    hl4.ToolTip = beatmap.SongPath;
+                    span.Inlines.Add(hl4);
+                    var hl5 = new Hyperlink(new Run("额外保持10分钟"));
+                    hl5.Click += (_, __) =>
                     {
-                        var as_ = audiostream;
-                        audiostream = null;
-                        as_.Stop();
-                        np = null;
+                        breaktimer = true;
+                        breakduration = TimeSpan.FromMinutes(10);
                     };
-                    hl3.IsEnabled = false;
-                    span.Inlines.Add(hl2);
-                    span.Inlines.Add(hl3);
-                    span.Inlines.Add(progress);
-                    span.Inlines.Add(new Run("\n"));
-                }
-                var hl4 = new Hyperlink(new Run("点我打开音频\n"));
-                hl4.Click += (s, e) => { Topmost = false; Process.Start(beatmap.SongPath); };
-                hl4.ToolTip = beatmap.SongPath;
-                span.Inlines.Add(hl4);
-                var hl5 = new Hyperlink(new Run("额外保持10分钟"));
-                hl5.Click += (_, __) =>
-                {
-                    breaktimer = true;
-                    breakduration = TimeSpan.FromMinutes(10);
-                };
-                span.Inlines.Add(hl5);
-                DetailInfoBox.Inlines.Add(span);
-                log.Log($"已加载{beatmap.BgPath}({beatmap.Artist} - {beatmap.Title}(Id:{beatmap.Id}))");
+                    span.Inlines.Add(hl5);
+                    DetailInfoBox.Inlines.Add(span);
+                    log.Log($"已加载{beatmap.BgPath}({beatmap.Artist} - {beatmap.Title}(Id:{beatmap.Id}))");
+                }));
                 curbmp = beatmap;
                 breaktimer = true;
-            }
-            catch
-            {
-                log.Log($"Unable to read bmp at {cursor}.Switch to {(next ? "next" : "prev")}.");
-                if (next)
+                var rank = cfg.Ranks.FirstOrDefault(x => x.MapsetId == beatmap.MapsetId);
+                if (rank != null)
                 {
-                    cursor++;
-                    if (cursor >= cfg.Caches.Count)
-                        cursor = 0;
+                    rank.Rank += 1;
+                    cfg.Save();
                 }
-                else
-                {
-                    cursor--;
-                    if (cursor < 0)
-                        cursor = cfg.Caches.Count;
-                }
-                goto reload;
-            }
+                loading = false;
+            });
         }
         private void NextImg()
         {
@@ -592,7 +616,39 @@ namespace osp
         private void RandomImg()
         {
             breaktimer = true;
-            cursor = random.Next(0, cfg.Caches.Count);
+            long targetbmp = 0;
+            List<RankEntry> ranks = cfg.Ranks.Where(x => !cfg.DislikedImage.Contains(x.MapsetId)).ToList();
+            if (ranks.Count == 0)
+                goto failback;
+            var totalrank = 0.0;
+            ranks.ForEach(x => totalrank += x.GetRelativeRank());
+            log.Log($"total rank == {totalrank}");
+            var index = random.NextDouble() * totalrank;
+            var ranki = 0.0;
+            foreach (var x in ranks)
+            {
+                ranki += x.GetRelativeRank();
+                if (ranki >= index)
+                {
+                    targetbmp = x.MapsetId;
+                    break;
+                }
+            }
+        failback:
+            if (targetbmp == 0)
+            {
+                log.Log("Falled to perform a ranked random order,fail back to normal random order.");
+            redo:
+                cursor = random.Next(0, cfg.Caches.Count);
+                if (cfg.DislikedImage.Contains(cfg.Caches[cursor].MapsetId))
+                {
+                    goto redo;
+                }
+            }
+            else
+            {
+                cursor = cfg.Caches.IndexOf(cfg.Caches.First(x => x.MapsetId == targetbmp));
+            }
             log.Log($"{cursor}/{cfg.Caches.Count}");
             LoadImg();
         }
@@ -636,6 +692,7 @@ namespace osp
 
         private void PushNotification(string msg, double delay = 20000, Func<TimeSpan, bool> CanClose = null)
         {
+            if (nofitifactiontolog)
             Logger.Instance.Log(msg);
             var msggrid = new Grid() { Width = 350, MinHeight = 50, Margin = new Thickness(5) };
             var border = new Border()
@@ -751,11 +808,13 @@ namespace osp
         private void Button_Click_4(object sender, RoutedEventArgs e)
         {
             cfg.LastSongsFolderModifiyTime = DateTime.MinValue;
+            cfg.Caches.Clear();
+            stoptimer = true;
             bool finished = false;
             PushNotification("正在后台重建缓存...", double.MaxValue, (_) => finished);
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            Task.Run(() => cfg.RebuildImageCache()).ContinueWith(t => Dispatcher.Invoke(() => { finished = true; PushNotification($"重建完毕 耗时:{sw.ElapsedMilliseconds}ms 加载了{cfg.Caches.Count}张"); RandomImg(); sw.Stop(); }));
+            Task.Run(() => cfg.RebuildImageCache()).ContinueWith(t => Dispatcher.Invoke(() => { finished = true; PushNotification($"重建完毕 耗时:{sw.ElapsedMilliseconds}ms 加载了{cfg.Caches.Count}张"); stoptimer=false; RandomImg(); sw.Stop(); }));
         }
 
         private void Button_Click_5(object sender, RoutedEventArgs e)
@@ -791,7 +850,7 @@ namespace osp
 
         private void Button_Click_10(object sender, RoutedEventArgs e)
         {
-            cfg.Save();
+            cfg.SaveImmediately();
             Extensions.FastQuit();
         }
 
@@ -1315,6 +1374,7 @@ namespace osp
         }
         private void InputBox(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null)
         {
+            ComboBoxInput.Visibility = Visibility.Collapsed;
             PasswordBoxInput.Visibility = Visibility.Collapsed;
             InputBoxFlyout.Visibility = Visibility.Visible;
             CloseButton.Command = Extensions.MakeCommand(_ =>
@@ -1336,6 +1396,7 @@ namespace osp
         }
         private void InputBoxPassword(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null)
         {
+            ComboBoxInput.Visibility = Visibility.Collapsed;
             InputBoxInput.Visibility = Visibility.Collapsed;
             InputBoxFlyout.Visibility = Visibility.Visible;
             CloseButton.Command = Extensions.MakeCommand(_ =>
@@ -1357,6 +1418,7 @@ namespace osp
         }
         private void MessageBox(string message, Action OnCanceled = null, Action OnInputCompleted = null)
         {
+            ComboBoxInput.Visibility = Visibility.Collapsed;
             PasswordBoxInput.Visibility = Visibility.Collapsed;
             InputBoxInput.Visibility = Visibility.Collapsed;
             InputBoxFlyout.Visibility = Visibility.Visible;
@@ -1375,10 +1437,110 @@ namespace osp
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
         }
+        private void SelectionInput<T>(string message,List<T> selections,T defaultitem = null, Action OnCanceled = null, Action<T> OnInputCompleted = null) where T :class
+        {
+            PasswordBoxInput.Visibility = Visibility.Collapsed;
+            InputBoxInput.Visibility = Visibility.Collapsed;
+            InputBoxFlyout.Visibility = Visibility.Visible;
+            CloseButton.Command = Extensions.MakeCommand(_ =>
+            {
+                if (OnCanceled != null)
+                    OnCanceled();
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
+            ComboBoxInput.Visibility = Visibility.Visible;
+            InputBoxDesc.Text = message;
+            ComboBoxInput.Focus();
+            ComboBoxInput.ItemsSource = selections;
+            if (selections.Count > 0)
+            {
+                ComboBoxInput.SelectedItem = defaultitem;
+                if (defaultitem == null)
+                {
+                    ComboBoxInput.SelectedIndex = 0;
+                }
+            }
+            SubmitButton.Command = Extensions.MakeCommand(_ =>
+            {
+                if (ComboBoxInput.SelectedItem == null)
+                    return;
+                if (OnInputCompleted != null)
+                    OnInputCompleted((T)ComboBoxInput.SelectedItem);
+                InputBoxFlyout.Visibility = Visibility.Collapsed;
+            });
+        }
 
         private void Button_Click_22(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void Button_Click_23(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Button_Click_24(object sender, RoutedEventArgs e)
+        {
+            var rank = cfg.Ranks.FirstOrDefault(x => x.MapsetId == curbmp.MapsetId);
+            if (rank == null)
+            {
+                PushNotification("错误：无法读取权重数据,请在设置中重建缓存");
+                return;
+            }
+            rank.Rank -= 30;
+#if DEBUG
+            PushNotification($"已提高 {curbmp.Title} 的权重到 {rank.GetRelativeRank()}");
+#else
+            PushNotification("已喜欢该图片,将增加显示该图片的概率");
+#endif
+        }
+
+        private void Button_Click_25(object sender, RoutedEventArgs e)
+        {
+            var rank = cfg.Ranks.FirstOrDefault(x => x.MapsetId == curbmp.MapsetId);
+            if (rank == null)
+            {
+                PushNotification("错误：无法读取权重数据,请在设置中重建缓存");
+                return;
+            }
+            rank.Rank += 20;
+#if DEBUG
+            PushNotification($"已降低 {curbmp.Title} 的权重到 {rank.GetRelativeRank()}");
+#else
+            PushNotification("已切换到下一张图片，将减少显示此图片的概率");
+            RandomImg();
+#endif
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SelectionInput("选择要加入的收藏夹", cfg.Collections,cfg.Collections.First(x=>string.Compare(x.Name,"sukidesu",true) == 0), null, x => {
+                x.Images.Add(curbmp.MapsetId);
+                PushNotification($"已将 {curbmp.Title} 加入 {x.Name} 收藏夹");
+                RefreshCollections();
+            });
+        }
+
+        private void Button_Click_26(object sender, RoutedEventArgs e)
+        {
+            MessageBox($"权重数据:\r\n{string.Join("\r\n",cfg.Ranks.OrderBy(x=>x.GetRelativeRank()).Select(x=> $"{cfg.Caches.Find(y=> y.MapsetId ==x.MapsetId).Name}({x.MapsetId}) : {x.GetRelativeRank()}(Real:{x.Rank})"))}");
+        }
+
+        private void Button_Click_27(object sender, RoutedEventArgs e)
+        {
+            MessageBox($"缓存数据:\r\n最近更新: {cfg.LastSongsFolderModifiyTime}\r\n缓存条数: {cfg.Caches.Count}\r\n{string.Join("\r\n", cfg.Caches.Where(x=>x.Beatmaps.Count >0).Select(x => $"{x.Beatmaps.FirstOrDefault().Artist} - {x.Name} : {x.Dir}"))}");
+        }
+        private bool nofitifactiontolog = true;
+        private void Button_Click_28(object sender, RoutedEventArgs e)
+        {
+            log.LogHook += (s, e2) => {
+                Dispatcher.BeginInvoke((Action)(() => {
+                    PushNotification(e2.Trim(), 3000, null);
+                }));
+            };
+            nofitifactiontolog = false; 
+            log.Log("已将日志重定向到通知");
         }
     }
 }

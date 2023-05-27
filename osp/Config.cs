@@ -1,9 +1,11 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 
@@ -52,13 +54,7 @@ namespace OsuScreenProtector
                 throw new Exception();
             Environment.SetEnvironmentVariable(OsuPathToken, Instance.OsuPath = Directory.GetParent(ofd.FileName).FullName, EnvironmentVariableTarget.User);
             Instance.Save();
-            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
             return Instance;
-        }
-
-        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
-        {
-            Instance.Save();
         }
         public bool GetShouldRebuildImageCache()
         {
@@ -78,51 +74,77 @@ namespace OsuScreenProtector
             if (newlast > LastSongsFolderModifiyTime)
             {
                 Logger.Instance.Log("Change detected,rebuilding cache...", "Info");
-                // perform update...
-                foreach (var dir_ in Directory.EnumerateDirectories(songs))
+                var safequeue = new ConcurrentQueue<string>();
+                Directory.EnumerateDirectories(songs).ToList().ForEach(x=>safequeue.Enqueue(x));
+                List<Thread> workthreads = new List<Thread>();
+                for (int i = 0; i < Environment.ProcessorCount * 2; i++)
                 {
-                    //var dir = Environment.OSVersion.Version.Major >= 10 ? dir_ : "\\\\?\\" + dir_; // long path aware issue
-                    var dir = "\\\\?\\" + dir_;
-                    if (Directory.GetLastWriteTimeUtc(dir) > LastSongsFolderModifiyTime)
-                    {
-                        Logger.Instance.Log($"Reading {dir}...", "Info");
-                        var cache = new CacheEntry();
-                        foreach (var dir2 in Directory.EnumerateFiles(dir))
+                    var thd = new Thread(() => {
+                        Logger.Instance.Log($"Thread {i} started to work");
+                        var dir_ = "";
+                        while (true)
                         {
-                            if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
+                            dir_ = null;
+                            safequeue.TryDequeue(out dir_);
+                            if (dir_ == null)
                             {
-                                using (var sr = new StreamReader(dir2))
+                                break;
+                            }
+                            var dir = Environment.OSVersion.Version.Major >= 10 ? dir_ : "\\\\?\\" + dir_; // long path aware issue
+                            if (Directory.GetLastWriteTimeUtc(dir) > LastSongsFolderModifiyTime)
+                            {
+                                Logger.Instance.Log($"Reading {dir}...", "Info");
+                                var cache = new CacheEntry();
+                                foreach (var dir2 in Directory.EnumerateFiles(dir))
                                 {
-                                    try
+                                    if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
                                     {
-                                        var bmp = Beatmap.Parse(sr);
-                                        bmp.SongPath = Path.Combine(dir, bmp.SongPath);
-                                        bmp.BgPath = Path.Combine(dir, bmp.BgPath);
-                                        if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
+                                        using (var sr = new StreamReader(dir2))
                                         {
-                                            cache.MapsetId = bmp.MapsetId;
-                                            cache.Name = bmp.Title;
-                                            cache.Dir = dir;
-                                            cache.Beatmaps.Add(bmp);
-                                            Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
+                                            try
+                                            {
+                                                var bmp = Beatmap.Parse(sr);
+                                                bmp.SongPath = Path.Combine(dir, bmp.SongPath);
+                                                bmp.BgPath = Path.Combine(dir, bmp.BgPath);
+                                                if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
+                                                {
+                                                    cache.MapsetId = bmp.MapsetId;
+                                                    cache.Name = bmp.Title;
+                                                    cache.Dir = dir;
+                                                    cache.Beatmaps.Add(bmp);
+                                                    Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
+                                                }
+                                                count++;
+                                            }
+                                            catch
+                                            {
+                                                Logger.Instance.Log($"Failed to process {dir2}.", "Info");
+                                            }
                                         }
-                                        count++;
                                     }
-                                    catch
+                                }
+                                lock (Caches)
+                                {
+                                    var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
+                                    if (same != null)
                                     {
-                                        Logger.Instance.Log($"Failed to process {dir2}.", "Info");
+                                        Ranks.Remove(Ranks.FirstOrDefault(x => x.MapsetId == same.MapsetId));
+                                        Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
+                                        Caches.Remove(same);
                                     }
+                                    Ranks.Add(new RankEntry() { MapsetId = cache.MapsetId, Rank = 1 });
+                                    Caches.Add(cache);
                                 }
                             }
                         }
-                        var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
-                        if (same != null)
-                        {
-                            Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
-                            Caches.Remove(same);
-                        }
-                        Caches.Add(cache);
-                    }
+                        Logger.Instance.Log($"Thread {i} finished work");
+                    });
+                    thd.Start();
+                    workthreads.Add(thd);
+                }
+                while(!workthreads.All(x=>!x.IsAlive))
+                {
+                    Thread.Sleep(0);
                 }
                 Logger.Instance.Log($"Updated or loaded {count} beatmaps");
                 LastSongsFolderModifiyTime = newlast;
@@ -131,10 +153,24 @@ namespace OsuScreenProtector
         }
         public void Save()
         {
-            Logger.Instance.Log("Saved!");
+            if (tsk== null || tsk.IsCompleted)
+            {
+                tsk = Task.Run(() =>
+                {
+                    SaveImmediately();
+                });
+            }
+            Logger.Instance.Log("Try to save");
+        }
+
+        public void SaveImmediately()
+        {
             var cfgpath = Path.Combine(OsuPath, ConfigName);
             File.WriteAllText(cfgpath, System.Text.Json.JsonSerializer.Serialize(this));
+            Logger.Instance.Log("Saved!");
         }
+
+        private Task tsk;
         public void DeleteConfig()
         {
             Logger.Instance.Log("Delete config file.");
@@ -152,6 +188,25 @@ namespace OsuScreenProtector
             public string Name { get; set; }
             public long MapsetId { get; set; }
             public List<Beatmap> Beatmaps { get; set; } = new List<Beatmap>();
+        }
+        // 图片权重,用于“几乎不重复随机”
+        public List<RankEntry> Ranks { get; set; } = new List<RankEntry>();
+        public class RankEntry
+        {
+            public long MapsetId { get; set; }
+            // 行为：正数使用其倒数 负数使用其绝对值
+            // 不喜欢+20 喜欢-30 浏览过+1
+            public double Rank { get; set; }
+            public double GetRelativeRank()
+            {
+                if (Rank >= 1)
+                {
+                    return 1 / Rank;
+                }
+                if (Rank < 0)
+                    return -Rank;
+                return Rank;
+            }
         }
         public class Beatmap
         {
@@ -246,6 +301,10 @@ namespace OsuScreenProtector
             public string Name { get; set; } = "";
             public string Description { get; set; } = "";
             public List<long> Images { get; set; } = new List<long>();
+            public override string ToString()
+            {
+                return Name;
+            }
         }
         public List<GalleryCollection> Collections { get; set; } = new List<GalleryCollection> { };
         public double AutoOpenMin { get; set; } = 5;
@@ -265,11 +324,11 @@ namespace OsuScreenProtector
 #endif
         public double Volume { get; set; } = 10;
         public string SettingPasswordHash { get; set; } = null;
-        public string CollectionPasswordHash {get;set;} = null;
-        public bool RandomOrder {get;set;} = false;
-        public bool Loop{get;set;} = true;
-        public bool ShowStopButton {get;set;} = true;
-        public double BackgroundDim{get;set;} = 0.2;
+        public string CollectionPasswordHash { get; set; } = null;
+        public bool RandomOrder { get; set; } = false;
+        public bool Loop { get; set; } = true;
+        public bool ShowStopButton { get; set; } = true;
+        public double BackgroundDim { get; set; } = 0.2;
     }
 }
 
