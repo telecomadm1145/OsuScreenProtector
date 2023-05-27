@@ -4,16 +4,22 @@
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net4.8</TargetFramework>
 		<ImplicitUsings>disable</ImplicitUsings>
-		<Nullable>disable</Nullable>
+		<Nullable>warnings</Nullable>
 		<UseWpf>true</UseWpf>
 		<UseWindowsForms>true</UseWindowsForms>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>10</LangVersion>
+		<ApplicationIcon>Icon.ico</ApplicationIcon>
+		<NoWin32Manifest>true</NoWin32Manifest>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Reference Include="PresentationFramework.Aero"/>
-		<Reference Include="PresentationFramework.Aero2"/>
+	  <Content Include="Icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="PresentationFramework.Aero" />
+		<Reference Include="PresentationFramework.Aero2" />
 		<PackageReference Include="ManagedBass" Version="3.1.1" />
 		<PackageReference Include="System.Text.Json" Version="7.0.2" />
 	</ItemGroup>
