@@ -15,323 +15,386 @@
         </Style>
     </Window.Resources>
     <Grid>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="auto"/>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="auto"/>
-            </Grid.ColumnDefinitions>
-            <Grid Grid.ColumnSpan="3" MouseDown="Grid_MouseDown">
-                <Image x:Name="Bg" Stretch="UniformToFill"  VerticalAlignment="Center" HorizontalAlignment="Center"  StretchDirection="Both"/>
-                <Rectangle Fill="#50000000" x:Name="BgDimOverlay"/>
-            </Grid>
-            <Grid Width="40" Background="#01000000" MouseLeftButtonDown="Grid_MouseLeftButtonDown_1"/>
-            <local:StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="0,80,0,0">
-                <local:StackPanel.Effect>
-                    <DropShadowEffect ShadowDepth="0" Opacity="0.5" BlurRadius="10"/>
-                </local:StackPanel.Effect>
-                <TextBlock Text="%Time%" HorizontalAlignment="Center" FontSize="65" x:Name="Time" Foreground="White" FontFamily="Segoe UI" FontWeight="SemiBold"/>
-                <TextBlock Text="%Date%" HorizontalAlignment="Center" FontSize="35" x:Name="Date" Foreground="White"/>
-            </local:StackPanel>
-            <local:StackPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,20">
-                <local:StackPanel.Effect>
-                    <DropShadowEffect ShadowDepth="0" Opacity="1" BlurRadius="10"/>
-                </local:StackPanel.Effect>
-                <TextBlock Text="点我查看图片相关信息" HorizontalAlignment="Center" FontSize="20" Foreground="#a0ffffff" Margin="5" MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"/>
-            </local:StackPanel>
-            <Grid Width="40" Grid.Column="2" Background="#01000000" MouseLeftButtonDown="Grid_MouseLeftButtonDown"/>
-            <local:StackPanel Orientation="Horizontal" Grid.ColumnSpan="3" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5">
-                <local:StackPanel.Effect>
-                    <DropShadowEffect ShadowDepth="0" Opacity="0.8" BlurRadius="10"/>
-                </local:StackPanel.Effect>
-                <Button Margin="5" FontSize="15" Content="市场" Background="Transparent" Click="Button_Click_22" />
-            </local:StackPanel>
-            <local:StackPanel Orientation="Horizontal" Grid.ColumnSpan="3" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="5">
-                <local:StackPanel.Effect>
-                    <DropShadowEffect ShadowDepth="0" Opacity="0.8" BlurRadius="10"/>
-                </local:StackPanel.Effect>
-                <Button Content="停止播放" Margin="5" FontSize="15" Click="Button_Click_18" x:Name="StopPlayButton" Visibility="Collapsed" Background="Transparent"/>
-                <Button Content="不喜欢" Margin="5" FontSize="15" Click="Button_Click_25" Background="Transparent">
-                    <Button.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="不再显示" Click="Button_Click_14">
-
-                            </MenuItem>
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                </Button>
-                <Button Content="喜欢" Margin="5" FontSize="15" Click="Button_Click_24" Background="Transparent">
-                    <Button.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="加入默认收藏" Click="Button_Click">
-
-                            </MenuItem>
-                            <MenuItem Header="加入收藏..." Click="MenuItem_Click">
-
-                            </MenuItem>
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                </Button>
-                <Button Content="设置" Margin="5" FontSize="15" MouseDoubleClick="Button_MouseDoubleClick" Background="Transparent">
-                    <Button.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="管理收藏品" Click="Button_Click_12">
-
-                            </MenuItem>
-                        </ContextMenu>
-                    </Button.ContextMenu>
-                </Button>
-                <Button Content="退出屏保" Margin="5" FontSize="15" Click="Button_MouseLeftButtonDown_1"/>
-            </local:StackPanel>
+        <Grid MouseDown="UINextImg2">
+            <Image x:Name="Bg" Stretch="UniformToFill"  VerticalAlignment="Center" HorizontalAlignment="Center"  StretchDirection="Both"/>
+            <Rectangle Fill="#50000000" x:Name="BgDimOverlay"/>
         </Grid>
-        <Grid x:Name="DetailInfo" Visibility="Collapsed">
-            <Grid Background="#50000000">
-                <Border Width="500" Height="300" Background="#7f000000" CornerRadius="10">
-                    <Grid>
-                        <TextBlock x:Name="DetailInfoBox" Margin="10" TextWrapping="Wrap" Foreground="#cfffffff" FontSize="15" LineHeight="20"/>
-                        <Button Content="Ok." Margin="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Click="Button_MouseLeftButtonDown_2" Padding="5"/>
+        <Grid x:Name="SafeAreaOutter">
+            <Grid.LayoutTransform>
+                <ScaleTransform/>
+            </Grid.LayoutTransform>
+            <Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid Width="40" Background="#01000000" MouseLeftButtonDown="UIPrevImg"/>
+                    <local:StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="0,80,0,0">
+                        <local:StackPanel.Effect>
+                            <DropShadowEffect ShadowDepth="0" Opacity="0.8" BlurRadius="10"/>
+                        </local:StackPanel.Effect>
+                        <TextBlock Text="%Time%" HorizontalAlignment="Center" FontSize="65" x:Name="Time" Foreground="White" FontFamily="Segoe UI" FontWeight="SemiBold"/>
+                        <TextBlock Text="%Date%" HorizontalAlignment="Center" FontSize="35" x:Name="Date" Foreground="White"/>
+                    </local:StackPanel>
+                    <local:StackPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,20">
+                        <local:StackPanel.Effect>
+                            <DropShadowEffect ShadowDepth="0" Opacity="1" BlurRadius="10"/>
+                        </local:StackPanel.Effect>
+                        <TextBlock Text="点我查看图片相关信息" HorizontalAlignment="Center" FontSize="20" Foreground="#a0ffffff" Margin="5" MouseLeftButtonDown="UIOpenDetail"/>
+                    </local:StackPanel>
+                    <Grid Width="40" Grid.Column="2" Background="#01000000" MouseLeftButtonDown="UINextImg"/>
+                    <local:StackPanel Orientation="Horizontal" Grid.ColumnSpan="3" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="5">
+                        <local:StackPanel.Effect>
+                            <DropShadowEffect ShadowDepth="0" Opacity="0.8" BlurRadius="10"/>
+                        </local:StackPanel.Effect>
+                        <Button Content="停止播放" Margin="5" FontSize="15" Click="UIStopAudio" x:Name="StopPlayButton" Visibility="Collapsed" Background="Transparent"/>
+                        <Button Content="不喜欢" Margin="5" FontSize="15" Click="UILowerRank" Background="Transparent">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="不再显示" Click="Button_Click_14">
+
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <Button Content="喜欢" Margin="5" FontSize="15" Click="UIHigherRank" Background="Transparent">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="加入默认收藏" Click="UIAddSukiCollection">
+
+                                    </MenuItem>
+                                    <MenuItem Header="加入收藏..." Click="UIAddSukiCollection">
+
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <Button Content="设置" Margin="5" FontSize="15" MouseDoubleClick="UIOpenSettings" Background="Transparent">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="管理收藏品" Click="UIOpenCollections">
+
+                                    </MenuItem>
+                                    <MenuItem Header="管理额外图片" Click="UIOpenImageManagingFlyout"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <Button Content="退出屏保" Margin="5" FontSize="15" Click="UIHideProgram"/>
+                    </local:StackPanel>
+                </Grid>
+                <Grid x:Name="DetailInfo" Visibility="Collapsed">
+                    <Grid Background="#50000000">
+                        <Border Width="500" Height="300" Background="#7f000000" CornerRadius="10">
+                            <Grid>
+                                <TextBlock x:Name="DetailInfoBox" Margin="10" TextWrapping="Wrap" Foreground="#cfffffff" FontSize="15" LineHeight="20"/>
+                                <Button Content="Ok." Margin="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Click="UICloseDetail" Padding="5"/>
+                            </Grid>
+                        </Border>
                     </Grid>
-                </Border>
-            </Grid>
-        </Grid>
-        <Grid x:Name="SettingsFlyout" Visibility="Collapsed" d:Visibility="Visible">
-            <Grid.Resources>
-                <Style TargetType="{x:Type TextBlock}">
-                    <Setter Property="LineHeight" Value="20"/>
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Margin" Value="5"/>
-                </Style>
-            </Grid.Resources>
-            <Grid Background="#50000000">
-                <Border Width="700" Height="500" Background="#7f000000" CornerRadius="10">
-                    <Grid>
-                        <ScrollViewer>
-                            <local:StackPanel Margin="10" Spacing="0">
-                                <TextBlock Text="基本" FontSize="24"/>
-                                <TextBlock>
+                </Grid>
+                <Grid x:Name="SettingsFlyout" Visibility="Collapsed">
+                    <Grid Background="#50000000">
+                        <Border Width="700" Height="500" Background="#7f000000" CornerRadius="10">
+                            <Grid>
+                                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                                    <local:StackPanel Margin="10" Spacing="3">
+                                        <TextBlock Text="基本" FontSize="24"/>
+                                        <TextBlock>
                                     <Run Text="Osu路径 "/>
                                     <InlineUIContainer>
                                         <TextBox TextBlock.BaselineOffset="18" Width="500" IsReadOnly="True" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" x:Name="OsuPathBox"/>
                                     </InlineUIContainer>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="日志路径 "/>
                                     <InlineUIContainer>
                                         <TextBox TextBlock.BaselineOffset="18" Width="500" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" x:Name="LogPathBox" ToolTip="重启应用"/>
                                     </InlineUIContainer>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     自动启动 <CheckBox x:Name="AutostartCheckBox" TextBlock.BaselineOffset="12"/>
-                                </TextBlock>
-                                <TextBlock Text="显示" FontSize="24"/>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock Text="显示" FontSize="24"/>
+                                        <TextBlock>
+                                            安全区<LineBreak/>
+                                            左 <Slider x:Name="SafeAreaThicknessLeft" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
+                                            上 <Slider x:Name="SafeAreaThicknessTop" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/><LineBreak/>
+                                            右 <Slider x:Name="SafeAreaThicknessRight" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
+                                            下 <Slider x:Name="SafeAreaThicknessBottom" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/><LineBreak/>
+                                            统一 <Slider x:Name="SafeAreaThicknessUniform" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/><LineBreak/>
+                                            <Grid>
+                                                <Rectangle Fill="Black" Width="250" Height="250"/>
+                                                                                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Rectangle Fill="Gray" Width="200" Height="200"/>
+                                                <Rectangle x:Name="SafeAreaPreview" Fill="White" Stroke="#ffff7070" StrokeThickness="2" StrokeDashCap="Flat" StrokeDashOffset="1"/>
+                                                                                                </Grid>
+                                            </Grid><LineBreak/><LineBreak/>
+                                            <Button Content="应用" Click="UIApplySafeArea"/>
+                                        </TextBlock>
+                                        <TextBlock ToolTip="不包括 Dpi 缩放">
+                                            UI 缩放 <Slider x:Name="UIScaleSlider" Minimum="50" Maximum="200" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="时间格式 "/>
                                     <InlineUIContainer>
                                         <TextBox TextBlock.BaselineOffset="14" Width="200" TextWrapping="NoWrap" MaxLines="1" ToolTip="hh(HH 24进制)小时 mm分钟 ss秒 ffff毫秒(最大7位) tt上下午" x:Name="TimeFormat"/>
                                     </InlineUIContainer>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="日期格式 "/>
                                     <InlineUIContainer>
                                         <TextBox TextBlock.BaselineOffset="14" Width="200" TextWrapping="NoWrap" MaxLines="1" ToolTip="yyyy年 MM月 dd日 zz UTC偏移 ddd星期 dddd星期(完全) MMM月缩写 MMMM月份" x:Name="DateFormat"/>
                                     </InlineUIContainer>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="字体 "/>
                                     <InlineUIContainer>
                                         <Border TextBlock.BaselineOffset="12" CornerRadius="10" Background="#50000000">
                                             <ScrollViewer Height="200" Width="300" x:Name="FontListViewer">
-                                                <local:StackPanel x:Name="FontList"/>
+                                                <local:StackPanel x:Name="FontList" Spacing="3" Margin="5"/>
                                             </ScrollViewer>
                                         </Border>
                                     </InlineUIContainer>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="日期字体大小"/>
                                     <Slider x:Name="DateFontSizeSlider" Minimum="12" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
                                     <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=DateFontSizeSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="时间字体大小"/>
                                     <Slider x:Name="TimeFontSizeSlider" Minimum="12" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
                                     <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=TimeFontSizeSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="时间日期间隙"/>
                                     <Slider x:Name="GapSlider" Minimum="-50" Maximum="50" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
                                     <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=GapSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     背景暗化
                                     <Slider x:Name="BgDimSlider" Minimum="-100" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
                                     <TextBox Width="100" Text="{Binding Value,StringFormat=N1,ElementName=BgDimSlider,Mode=TwoWay}" TextBlock.BaselineOffset="14"/>
-                                </TextBlock>
-                                <TextBlock Text="音频" FontSize="24"/>
-                                <TextBlock>音量
+                                        </TextBlock>
+                                        <TextBlock Text="音频" FontSize="24"/>
+                                        <TextBlock>音量
                                     <Slider Width="200" Minimum="0" Maximum="100" TickFrequency="10" TickPlacement="BottomRight" x:Name="VolumeSlider" TextBlock.BaselineOffset="25"/>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     循环播放 <CheckBox x:Name="AudioLoopCheckbox" TextBlock.BaselineOffset="12"/>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     显示"停止"按钮 <CheckBox x:Name="ShowStopButtonCheckbox" TextBlock.BaselineOffset="12"/>
-                                </TextBlock>
-                                <TextBlock Text="自动" FontSize="24"/>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock Text="自动" FontSize="24"/>
+                                        <TextBlock>
                                     <Run Text="每 "/>
                                     <InlineUIContainer>
                                         <TextBox Width="40" Height="20" TextBlock.BaselineOffset="14" x:Name="AutoOpenBox" MaxLength="10" MaxLines="1" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/>
                                     </InlineUIContainer>
                                     <Run Text=" 分钟自动打开"/>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     <Run Text="每 "/>
                                     <InlineUIContainer>
                                         <TextBox Width="40" Height="20" TextBlock.BaselineOffset="14" x:Name="AutoNextBox" MaxLength="10" MaxLines="1" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"/>
                                     </InlineUIContainer>
                                     <Run Text=" 分钟自动下一张"/>
-                                </TextBlock>
-                                <TextBlock>
+                                        </TextBlock>
+                                        <TextBlock>
                                     随机图片 <CheckBox x:Name="RandomOrderCheckbox" TextBlock.BaselineOffset="12"/>
-                                </TextBlock>
-                                <TextBlock Text="维护" FontSize="24"/>
-                                <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <Button Content="修改设置密码" Foreground="#ffff0000" Margin="5" Click="Button_Click_19"/>
-                                    <Button Content="修改收藏密码" Foreground="#ffff0000" Margin="5" Click="Button_Click_20"/>
+                                        </TextBlock>
+                                        <TextBlock Text="维护" FontSize="24"/>
+                                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button Content="修改设置密码" Foreground="#ffff0000" Margin="5" Click="UIChangeSettingPassword"/>
+                                            <Button Content="修改收藏密码" Foreground="#ffff0000" Margin="5" Click="UIChangeCollectionPassword"/>
+                                        </local:StackPanel>
+                                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button Content="重建缓存" Margin="5" Click="UIRebuildCache"/>
+                                            <Button Content="清除缓存并重建" Margin="5" Click="UIForceRebuildCache"/>
+                                            <Button Content="修复文件夹权限" Foreground="#ffff0000" Margin="5" Click="UIFixFolderAccess"/>
+                                        </local:StackPanel>
+                                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button Content="移除所有不喜欢" Margin="5" Click="UIClearDislikes"/>
+                                            <Button Content="移除所有收藏品" Margin="5" Click="UIClearCollection"/>
+                                            <Button Content="重置图片权重" Margin="5" Click="UIClearRank" ToolTip="当图片随机出现问题时"/>
+                                            <Button Content="移除空收藏夹" Margin="5" Click="UIDeleteEmptyCollection"/>
+                                        </local:StackPanel>
+                                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button Content="强行清除配置文件" Margin="5" Click="UIDeleteConfig"/>
+                                            <Button Content="打开配置文件" Margin="5" Click="UIOpenConfigFile"/>
+                                            <Button Content="关闭程序" Margin="5" Click="UIFastQuit" Foreground="#ffff0000"/>
+                                        </local:StackPanel>
+                                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button Content="显示一条通知" Margin="5" Click="UITestNotification"/>
+                                            <Button Content="停止播放" Margin="5" Click="UIStopAudio"/>
+                                        </local:StackPanel>
+                                        <TextBlock Text="调试" FontSize="24"/>
+                                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button Content="显示日志" Margin="5" Click="UIRedirectLog"/>
+                                            <Button Content="显示缓存" Margin="5" Click="UIDebugShowCache"/>
+                                            <Button Content="显示权重" Margin="5" Click="UIDebugShowRanks"/>
+                                        </local:StackPanel>
+                                        <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="#50ffffff">
+                                    <Hyperlink Click="UIOpenProjectLink" ToolTip="https://github.com/telecomadm1145/osuscreenprotector">Created</Hyperlink> by <Hyperlink Click="UIOpenCreatorLink" ToolTip="https://github.com/telecomadm1145">telecomadm1145</Hyperlink>.All rights reversed.
+                                        </TextBlock>
+                                    </local:StackPanel>
+                                </ScrollViewer>
+                                <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                    <Button Content="保存" Margin="10" Click="UISaveData"/>
+                                    <Button Content="关闭" Margin="10" Click="UICloseSettings"/>
                                 </local:StackPanel>
-                                <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <Button Content="重建缓存" Margin="5" Click="Button_Click_3"/>
-                                    <Button Content="清除缓存并重建" Margin="5" Click="Button_Click_4"/>
-                                    <Button Content="修复文件夹权限" Foreground="#ffff0000" Margin="5" Click="Button_Click_21"/>
-                                </local:StackPanel>
-                                <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <Button Content="移除所有不喜欢" Margin="5" Click="Button_Click_6"/>
-                                    <Button Content="移除所有收藏品" Margin="5" Click="Button_Click_7"/>
-                                    <Button Content="重置图片权重" Margin="5" Click="Button_Click_23" ToolTip="当图片随机出现问题时"/>
-                                    <Button Content="移除空收藏夹" Margin="5" Click="Button_Click_11"/>
-                                </local:StackPanel>
-                                <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <Button Content="强行清除配置文件" Margin="5" Click="Button_Click_8"/>
-                                    <Button Content="打开配置文件" Margin="5" Click="Button_Click_9"/>
-                                    <Button Content="关闭程序" Margin="5" Click="Button_Click_10" Foreground="#ffff0000"/>
-                                </local:StackPanel>
-                                <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <Button Content="显示一条通知" Margin="5" Click="Button_Click_2"/>
-                                    <Button Content="停止播放" Margin="5" Click="Button_Click_18"/>
-                                </local:StackPanel>
-                                <TextBlock Text="调试" FontSize="24"/>
-                                <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <Button Content="显示日志" Margin="5" Click="Button_Click_28"/>
-                                    <Button Content="显示缓存" Margin="5" Click="Button_Click_27"/>
-                                    <Button Content="显示权重" Margin="5" Click="Button_Click_26"/>
-                                </local:StackPanel>
-                                <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="#50ffffff">
-                                    <Hyperlink Click="Hyperlink_Click_1" ToolTip="https://github.com/telecomadm1145/osuscreenprotector">Created</Hyperlink> by <Hyperlink Click="Hyperlink_Click" ToolTip="https://github.com/telecomadm1145">telecomadm1145</Hyperlink>.All rights reversed.
-                                </TextBlock>
-                            </local:StackPanel>
-                        </ScrollViewer>
-                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                            <Button Content="保存" Margin="10" Click="Button_Click_5"/>
-                            <Button Content="关闭" Margin="10" Click="Button_Click_1"/>
-                        </local:StackPanel>
+                            </Grid>
+                        </Border>
                     </Grid>
-                </Border>
-            </Grid>
-        </Grid>
-        <Grid x:Name="CollectionFlyout" Visibility="Collapsed">
+                </Grid>
+                <Grid x:Name="CollectionFlyout" Visibility="Collapsed">
 
-            <Grid Background="#50000000">
-                <Border Width="800" Height="600" Background="#7f000000" CornerRadius="10">
-                    <Grid>
-                        <Grid x:Name="CollectionsBack">
-                            <TabControl x:Name="Collections">
-                            </TabControl>
-                            <!--请在此添加-->
-                            <local:StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Orientation="Horizontal">
-                                <Button Margin="5,0,5,0" Content="新建" Click="Button_Click_16"/>
-                                <Button Margin="5,0,5,0" Content="保存" Click="Button_Click_5"/>
-                                <Button Margin="5,0,5,0" Content="刷新" Click="Button_Click_15"/>
-                                <Button Margin="5,0,5,0" Content="X" Padding="8,5,8,5" Click="Button_Click_13"/>
-                            </local:StackPanel>
-                        </Grid>
-                        <Grid x:Name="CollectionDetailView" Visibility="Collapsed" d:Visibility="Visible">
-                            <Border Background="#7f000000" CornerRadius="10" Padding="10">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="auto"/>
-                                        <RowDefinition Height="1*"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto"/>
-                                        <ColumnDefinition Width="1*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Image Width="400" Margin="5" VerticalAlignment="Top" x:Name="CollectionDetailViewImage" MouseLeftButtonDown="CollectionDetailViewImage_MouseLeftButtonDown">
-                                        <Image.OpacityMask>
-                                            <VisualBrush>
-                                                <VisualBrush.Visual>
-                                                    <Border Background="White" CornerRadius="10" Width="{Binding ActualWidth,ElementName=CollectionDetailViewImage}" Height="{Binding ActualHeight,ElementName=CollectionDetailViewImage}"/>
-                                                </VisualBrush.Visual>
-                                            </VisualBrush>
-                                        </Image.OpacityMask>
-                                    </Image>
-                                    <!--Img-->
-                                    <TextBlock Grid.Column="1" x:Name="CollectionDetailViewInfo" FontSize="18" TextWrapping="Wrap"/>
-                                    <Border Background="#d0000000" CornerRadius="10" Grid.ColumnSpan="2" Grid.Row="1" VerticalAlignment="Top">
-                                        <ScrollViewer Height="120">
-                                            <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left" x:Name="CollectionDetailViewOtherImages">
-
-                                            </local:StackPanel>
-                                        </ScrollViewer>
-                                    </Border>
-                                    <local:StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
-                                        <Button Content="移除收藏" Margin="5" x:Name="RemoveCollectionButton"/>
-                                        <Button Content="打开图片" Margin="5" x:Name="OpenCollectionPictureButton"/>
-                                        <Button Content="关闭" Margin="5" Click="Button_Click_17"/>
+                    <Grid Background="#50000000">
+                        <Border Width="800" Height="600" Background="#7f000000" CornerRadius="10">
+                            <Grid>
+                                <Grid x:Name="CollectionsBack">
+                                    <TabControl x:Name="Collections">
+                                    </TabControl>
+                                    <!--请在此添加-->
+                                    <local:StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Orientation="Horizontal">
+                                        <Button Margin="5,0,5,0" Content="新建" Click="UICreateCollection"/>
+                                        <Button Margin="5,0,5,0" Content="保存" Click="UISaveData"/>
+                                        <Button Margin="5,0,5,0" Content="刷新" Click="Button_Click_15"/>
+                                        <Button Margin="5,0,5,0" Content="X" Padding="8,5,8,5" Click="UICloseCollections"/>
                                     </local:StackPanel>
                                 </Grid>
-                            </Border>
-                        </Grid>
+                                <Grid x:Name="CollectionDetailView" Visibility="Collapsed" d:Visibility="Visible">
+                                    <Border Background="#7f000000" CornerRadius="10" Padding="10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="auto"/>
+                                                <RowDefinition Height="1*"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto"/>
+                                                <ColumnDefinition Width="1*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Image Width="400" Margin="5" VerticalAlignment="Top" x:Name="CollectionDetailViewImage" MouseLeftButtonDown="UIOpenImageViewer">
+                                                <Image.OpacityMask>
+                                                    <VisualBrush>
+                                                        <VisualBrush.Visual>
+                                                            <Border Background="White" CornerRadius="10" Width="{Binding ActualWidth,ElementName=CollectionDetailViewImage}" Height="{Binding ActualHeight,ElementName=CollectionDetailViewImage}"/>
+                                                        </VisualBrush.Visual>
+                                                    </VisualBrush>
+                                                </Image.OpacityMask>
+                                            </Image>
+                                            <!--Img-->
+                                            <TextBlock Grid.Column="1" x:Name="CollectionDetailViewInfo" FontSize="18" TextWrapping="Wrap"/>
+                                            <Border Background="#d0000000" CornerRadius="10" Grid.ColumnSpan="2" Grid.Row="1" VerticalAlignment="Top">
+                                                <ScrollViewer Height="120">
+                                                    <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left" x:Name="CollectionDetailViewOtherImages">
+
+                                                    </local:StackPanel>
+                                                </ScrollViewer>
+                                            </Border>
+                                            <local:StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
+                                                <Button Content="移除收藏" Margin="5" x:Name="RemoveCollectionButton"/>
+                                                <Button Content="打开图片" Margin="5" x:Name="OpenCollectionPictureButton"/>
+                                                <Button Content="关闭" Margin="5" Click="UICloseCollection"/>
+                                            </local:StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </Border>
                     </Grid>
-                </Border>
-            </Grid>
-        </Grid>
-        <ScrollViewer x:Name="FullViewScrollViewer" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MouseRightButtonDown="FullViewScrollViewer_MouseRightButtonDown" PreviewMouseWheel="FullViewScrollViewer_MouseWheel">
-            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40">
-                <Image x:Name="FullViewImg">
-                    <Image.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform x:Name="FullViewImgScale"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Image.LayoutTransform>
-                </Image>
-            </Grid>
-        </ScrollViewer>
-        <!--Input box-->
-        <Grid Visibility="Collapsed" x:Name="InputBoxFlyout" Background="#50000000">
-            <Border Width="600" MaxHeight="400" Background="#7f000000" CornerRadius="10" VerticalAlignment="Center">
-                <Grid>
-                    <ScrollViewer>
-                        <local:StackPanel Margin="10,10,10,50">
-                            <TextBlock x:Name="InputBoxDesc" Text="114514" FontSize="18"/>
-                            <TextBox x:Name="InputBoxInput" Text="" FontSize="15" AcceptsReturn="True" AcceptsTab="True"/>
-                            <PasswordBox x:Name="PasswordBoxInput" FontSize="15"/>
-                            <ComboBox x:Name="ComboBoxInput" FontSize="15"/>
-                        </local:StackPanel>
-                    </ScrollViewer>
-                    <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                        <Button Content="确定" Margin="10" x:Name="SubmitButton"/>
-                        <Button Content="关闭" Margin="10" x:Name="CloseButton"/>
-                    </local:StackPanel>
                 </Grid>
-            </Border>
+                <Grid Visibility="Collapsed" x:Name="ImageManagingFlyout" Background="#50000000" d:Visibility="Visible">
+                    <Border Width="800" Height="600" Background="#7f000000" CornerRadius="10" VerticalAlignment="Center">
+                        <Grid Margin="5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="1*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <Image Width="400" Margin="5" MinHeight="200" VerticalAlignment="Top" x:Name="EditorViewImage" MouseLeftButtonDown="UIOpenImageViewer">
+                                <Image.OpacityMask>
+                                    <VisualBrush>
+                                        <VisualBrush.Visual>
+                                            <Border Background="White" CornerRadius="10" Width="{Binding ActualWidth,ElementName=EditorViewImage}" Height="{Binding ActualHeight,ElementName=CollectionDetailViewImage}"/>
+                                        </VisualBrush.Visual>
+                                    </VisualBrush>
+                                </Image.OpacityMask>
+                            </Image>
+                            <local:StackPanel Grid.Column="1" Spacing="3" Margin="5">
+                                <TextBlock>
+                            图片信息:
+                                </TextBlock>
+                                <TextBlock>
+                            标题: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorTitle"/>
+                                </TextBlock>
+                                <TextBlock>
+                            艺术家: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorArtist"/>
+                                </TextBlock>
+                                <TextBlock>
+                            图片路径: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorImagePath"/><Button Content="打开" TextBlock.BaselineOffset="14" Click="UIOpenImagePath"/>
+                                </TextBlock>
+                                <TextBlock>
+                            音频路径: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorAudioPath"/><Button Content="打开" TextBlock.BaselineOffset="14" Click="UIOpenAudioPath"/>
+                                </TextBlock>
+                                <TextBlock>
+                            Id: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorMapsetId"/><Button Content="生成" TextBlock.BaselineOffset="14" Click="UIGenerateMapsetId"/>
+                                </TextBlock>
+                            </local:StackPanel>
+                            <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.ColumnSpan="999" Grid.RowSpan="999">
+                                <Button Content="新建" Margin="10" Click="Button_Click_31"/>
+                                <Button Content="打开" Margin="10" Click="Button_Click_29"/>
+                                <Button Content="保存" Margin="10" Click="Button_Click_30"/>
+                                <Button Content="关闭" Margin="10" Click="UICloseImageManagingFlyout"/>
+                            </local:StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <ScrollViewer x:Name="FullViewScrollViewer" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MouseRightButtonDown="UICloseImageViewer" PreviewMouseWheel="UICtrlScale">
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40">
+                        <Image x:Name="FullViewImg">
+                            <Image.LayoutTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="FullViewImgScale"/>
+                                    <SkewTransform/>
+                                    <RotateTransform/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </Image.LayoutTransform>
+                        </Image>
+                    </Grid>
+                </ScrollViewer>
+                <!--Input box-->
+                <Grid Visibility="Collapsed" x:Name="InputBoxFlyout" Background="#50000000">
+                    <Border Width="600" MaxHeight="400" Background="#7f000000" CornerRadius="10" VerticalAlignment="Center">
+                        <Grid>
+                            <ScrollViewer>
+                                <local:StackPanel Margin="10,10,10,50">
+                                    <TextBlock x:Name="InputBoxDesc" Text="114514" FontSize="18"/>
+                                    <TextBox x:Name="InputBoxInput" Text="" FontSize="15" AcceptsReturn="True" AcceptsTab="True"/>
+                                    <PasswordBox x:Name="PasswordBoxInput" FontSize="15"/>
+                                    <ComboBox x:Name="ComboBoxInput" FontSize="15"/>
+                                </local:StackPanel>
+                            </ScrollViewer>
+                            <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                <Button Content="确定" Margin="10" x:Name="SubmitButton"/>
+                                <Button Content="关闭" Margin="10" x:Name="CloseButton"/>
+                            </local:StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <ScrollViewer HorizontalAlignment="Left" VerticalAlignment="Top" x:Name="NotificationScroller">
+                    <local:StackPanel Margin="0,0,0,0" x:Name="NotificationPanel">
+                        <!--flyout-->
+                    </local:StackPanel>
+                </ScrollViewer>
+            </Grid>
         </Grid>
-        <ScrollViewer HorizontalAlignment="Left" VerticalAlignment="Top" x:Name="NotificationScroller">
-            <local:StackPanel Margin="10" x:Name="NotificationPanel">
-                <!--flyout-->
-            </local:StackPanel>
-        </ScrollViewer>
     </Grid>
 </Window>

@@ -432,13 +432,13 @@
     </Style>
     <SolidColorBrush x:Key="OptionMark.Static.Background" Color="#60000000"/>
     <SolidColorBrush x:Key="OptionMark.Static.Border" Color="Transparent"/>
-    <SolidColorBrush x:Key="OptionMark.Static.Glyph" Color="#a0ffffff"/>
+    <SolidColorBrush x:Key="OptionMark.Static.Glyph" Color="White"/>
     <SolidColorBrush x:Key="OptionMark.MouseOver.Background" Color="#10ffffff"/>
     <SolidColorBrush x:Key="OptionMark.MouseOver.Border" Color="Transparent"/>
-    <SolidColorBrush x:Key="OptionMark.MouseOver.Glyph" Color="#a0ffffff"/>
+    <SolidColorBrush x:Key="OptionMark.MouseOver.Glyph" Color="White"/>
     <SolidColorBrush x:Key="OptionMark.Pressed.Background" Color="#10ffffff"/>
     <SolidColorBrush x:Key="OptionMark.Pressed.Border" Color="Transparent"/>
-    <SolidColorBrush x:Key="OptionMark.Pressed.Glyph" Color="#a0ffffff"/>
+    <SolidColorBrush x:Key="OptionMark.Pressed.Glyph" Color="White"/>
     <SolidColorBrush x:Key="OptionMark.Disabled.Background" Color="#20ffffff"/>
     <SolidColorBrush x:Key="OptionMark.Disabled.Border" Color="Transparent"/>
     <SolidColorBrush x:Key="OptionMark.Disabled.Glyph" Color="#70000000"/>

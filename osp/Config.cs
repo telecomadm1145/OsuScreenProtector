@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media;
 
 namespace OsuScreenProtector
@@ -75,11 +76,12 @@ namespace OsuScreenProtector
             {
                 Logger.Instance.Log("Change detected,rebuilding cache...", "Info");
                 var safequeue = new ConcurrentQueue<string>();
-                Directory.EnumerateDirectories(songs).ToList().ForEach(x=>safequeue.Enqueue(x));
+                Directory.EnumerateDirectories(songs).ToList().ForEach(x => safequeue.Enqueue(x));
                 List<Thread> workthreads = new List<Thread>();
                 for (int i = 0; i < Environment.ProcessorCount * 2; i++)
                 {
-                    var thd = new Thread(() => {
+                    var thd = new Thread(() =>
+                    {
                         Logger.Instance.Log($"Thread {i} started to work");
                         var dir_ = "";
                         while (true)
@@ -128,11 +130,11 @@ namespace OsuScreenProtector
                                     var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
                                     if (same != null)
                                     {
-                                        Ranks.Remove(Ranks.FirstOrDefault(x => x.MapsetId == same.MapsetId));
                                         Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
                                         Caches.Remove(same);
                                     }
-                                    Ranks.Add(new RankEntry() { MapsetId = cache.MapsetId, Rank = 1 });
+                                    if (!Ranks.Any(x => x.MapsetId == cache.MapsetId))
+                                        Ranks.Add(new RankEntry() { MapsetId = cache.MapsetId, Rank = 1 });
                                     Caches.Add(cache);
                                 }
                             }
@@ -142,7 +144,7 @@ namespace OsuScreenProtector
                     thd.Start();
                     workthreads.Add(thd);
                 }
-                while(!workthreads.All(x=>!x.IsAlive))
+                while (!workthreads.All(x => !x.IsAlive))
                 {
                     Thread.Sleep(0);
                 }
@@ -153,7 +155,7 @@ namespace OsuScreenProtector
         }
         public void Save()
         {
-            if (tsk== null || tsk.IsCompleted)
+            if (tsk == null || tsk.IsCompleted)
             {
                 tsk = Task.Run(() =>
                 {
@@ -328,7 +330,9 @@ namespace OsuScreenProtector
         public bool RandomOrder { get; set; } = false;
         public bool Loop { get; set; } = true;
         public bool ShowStopButton { get; set; } = true;
-        public double BackgroundDim { get; set; } = 0.2;
+        public double BackgroundDim { get; set; } = 20;
+        public Thickness SafeArea { get; set; } = new Thickness(0);
+        public double Scale { get; set; } = 1;
     }
 }
 

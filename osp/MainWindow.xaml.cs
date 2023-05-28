@@ -27,6 +27,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using static OsuScreenProtector.Config;
+using System.Net.Http;
 
 namespace osp
 {
@@ -41,9 +42,9 @@ namespace osp
 #if !DEBUG
             Hide();
             Activated+=(s,e) => Topmost = true;
+            WindowStyle = WindowStyle.None;
 #endif
             WindowState = WindowState.Maximized;
-            WindowStyle = WindowStyle.None;
             OsuPathBox.Text = cfg.OsuPath;
             OsuPathBox.MouseDoubleClick += (s, e) => Process.Start(cfg.OsuPath);
             LogPathBox.Text = cfg.LogPath;
@@ -303,8 +304,40 @@ namespace osp
                 UpdateBgDim();
             };
             UpdateBgDim();
-        }
 
+            RoutedPropertyChangedEventHandler<double> changed = (_, _) => {
+                SafeAreaPreview.Margin = UIGetSafeArea();
+            };
+            SafeAreaThicknessLeft.ValueChanged += changed;
+            SafeAreaThicknessRight.ValueChanged += changed;
+            SafeAreaThicknessTop.ValueChanged += changed;
+            SafeAreaThicknessBottom.ValueChanged += changed;
+            SafeAreaThicknessUniform.ValueChanged += (_, _) =>
+            {
+                SafeAreaThicknessLeft.Value = SafeAreaThicknessTop.Value = SafeAreaThicknessBottom.Value = SafeAreaThicknessRight.Value = SafeAreaThicknessUniform.Value;
+            };
+            SetSafeAreaFromConfig();
+
+            UIScaleSlider.ValueChanged += (_, _) => { 
+                cfg.Scale = UIScaleSlider.Value / 100;
+            };
+            UIScaleSlider.PreviewMouseUp += (_, _) =>
+            {
+                SetUIScaleFromConfig();
+                cfg.Save();
+            };
+            UIScaleSlider.KeyUp += (_, _) =>
+            {
+                SetUIScaleFromConfig();
+                cfg.Save();
+            };
+            SetUIScaleFromConfig();
+        }
+        private void SetUIScaleFromConfig()
+        {
+            ScaleTransform st = (ScaleTransform)SafeAreaOutter.LayoutTransform;
+            st.ScaleX = st.ScaleY = cfg.Scale;
+        }
         private void UpdateBgDim()
         {
             var sb = (SolidColorBrush)BgDimOverlay.Fill;
@@ -425,7 +458,8 @@ namespace osp
             }
             loading = true;
             log.Log("loading img.");
-            Task.Run(() => {
+            Task.Run(() =>
+            {
             reload:
                 Config.Beatmap beatmap = null;
                 ImageSource imageSource = null;
@@ -470,7 +504,8 @@ namespace osp
                     }
                     goto reload;
                 }
-                Dispatcher.BeginInvoke((Action)(() => {
+                Dispatcher.BeginInvoke((Action)(() =>
+                {
                     Bg.Source = imageSource;
                     DetailInfoBox.Inlines.Clear();
                     var span = new Span();
@@ -652,19 +687,19 @@ namespace osp
             log.Log($"{cursor}/{cfg.Caches.Count}");
             LoadImg();
         }
-        private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void UINextImg(object sender, MouseButtonEventArgs e)
         {
             NextImg();
             //right
         }
 
-        private void Grid_MouseLeftButtonDown_1(object sender, MouseButtonEventArgs e)
+        private void UIPrevImg(object sender, MouseButtonEventArgs e)
         {
             PrevImg();
             //left
         }
 
-        private void Button_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void UIOpenSettings(object sender, MouseButtonEventArgs e)
         {
             OpenSettings();
             // settings
@@ -693,7 +728,7 @@ namespace osp
         private void PushNotification(string msg, double delay = 20000, Func<TimeSpan, bool> CanClose = null)
         {
             if (nofitifactiontolog)
-            Logger.Instance.Log(msg);
+                Logger.Instance.Log(msg);
             var msggrid = new Grid() { Width = 350, MinHeight = 50, Margin = new Thickness(5) };
             var border = new Border()
             {
@@ -733,13 +768,13 @@ namespace osp
             }).ContinueWith(t => Dispatcher.Invoke(() => msggrid.BeginStoryboard(autohide)));
         }
 
-        private void Button_MouseLeftButtonDown_1(object sender, EventArgs e)
+        private void UIHideProgram(object sender, EventArgs e)
         {
             Hide();
             // hide
         }
 
-        private void Grid_MouseDown(object sender, MouseButtonEventArgs e)
+        private void UINextImg2(object sender, MouseButtonEventArgs e)
         {
             // clean cache and random img
             if (e.RightButton == MouseButtonState.Pressed)
@@ -753,19 +788,19 @@ namespace osp
             }
         }
 
-        private void TextBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void UIOpenDetail(object sender, MouseButtonEventArgs e)
         {
             // toggle detail info
             e.Handled = true;
             DetailInfo.Visibility = Visibility.Visible;
         }
 
-        private void Button_MouseLeftButtonDown_2(object sender, EventArgs e)
+        private void UICloseDetail(object sender, EventArgs e)
         {
             DetailInfo.Visibility = Visibility.Collapsed;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void UIAddSukiCollection(object sender, RoutedEventArgs e)
         {
             var suki = cfg.Collections.Find(x => x.Name.ToLower() == "sukidesu");
             if (suki.Images.Contains(curbmp.MapsetId))
@@ -779,24 +814,17 @@ namespace osp
             RefreshCollections();
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
+        private void UICloseSettings(object sender, RoutedEventArgs e)
         {
             SettingsFlyout.Visibility = Visibility.Collapsed;
         }
 
-        private void ScrollViewer_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            var sv = ((ScrollViewer)sender);
-            e.Handled = true;
-            sv.ScrollToVerticalOffset(sv.ContentVerticalOffset + (double)e.Delta / 10);
-        }
-
-        private void Button_Click_2(object sender, RoutedEventArgs e)
+        private void UITestNotification(object sender, RoutedEventArgs e)
         {
             PushNotification($"通知!现在时间是{DateTime.Now}");
         }
 
-        private void Button_Click_3(object sender, RoutedEventArgs e)
+        private void UIRebuildCache(object sender, RoutedEventArgs e)
         {
             bool finished = false;
             PushNotification("正在后台重建缓存...", double.MaxValue, (_) => finished);
@@ -805,7 +833,7 @@ namespace osp
             Task.Run(() => cfg.RebuildImageCache()).ContinueWith(t => Dispatcher.Invoke(() => { finished = true; PushNotification($"重建完毕 耗时:{sw.ElapsedMilliseconds}ms 加载了{cfg.Caches.Count}张"); RandomImg(); sw.Stop(); }));
         }
 
-        private void Button_Click_4(object sender, RoutedEventArgs e)
+        private void UIForceRebuildCache(object sender, RoutedEventArgs e)
         {
             cfg.LastSongsFolderModifiyTime = DateTime.MinValue;
             cfg.Caches.Clear();
@@ -814,15 +842,15 @@ namespace osp
             PushNotification("正在后台重建缓存...", double.MaxValue, (_) => finished);
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            Task.Run(() => cfg.RebuildImageCache()).ContinueWith(t => Dispatcher.Invoke(() => { finished = true; PushNotification($"重建完毕 耗时:{sw.ElapsedMilliseconds}ms 加载了{cfg.Caches.Count}张"); stoptimer=false; RandomImg(); sw.Stop(); }));
+            Task.Run(() => cfg.RebuildImageCache()).ContinueWith(t => Dispatcher.Invoke(() => { finished = true; PushNotification($"重建完毕 耗时:{sw.ElapsedMilliseconds}ms 加载了{cfg.Caches.Count}张"); stoptimer = false; RandomImg(); sw.Stop(); }));
         }
 
-        private void Button_Click_5(object sender, RoutedEventArgs e)
+        private void UISaveData(object sender, RoutedEventArgs e)
         {
             cfg.Save();
         }
 
-        private void Button_Click_6(object sender, RoutedEventArgs e)
+        private void UIClearDislikes(object sender, RoutedEventArgs e)
         {
             var count = cfg.DislikedImage.Count;
             cfg.DislikedImage.Clear();
@@ -830,31 +858,31 @@ namespace osp
             PushNotification($"清除了{count}张不喜欢的图片");
         }
 
-        private void Button_Click_7(object sender, RoutedEventArgs e)
+        private void UIClearCollection(object sender, RoutedEventArgs e)
         {
             var count = cfg.Collections.Count;
             cfg.Collections.ForEach(x => x.Images.Clear());
             PushNotification($"清空了{count}个收藏夹");
         }
 
-        private void Button_Click_8(object sender, RoutedEventArgs e)
+        private void UIDeleteConfig(object sender, RoutedEventArgs e)
         {
             cfg.DeleteConfig();
             PushNotification($"删除了配置文件，请重启");
         }
 
-        private void Button_Click_9(object sender, RoutedEventArgs e)
+        private void UIOpenConfigFile(object sender, RoutedEventArgs e)
         {
             Process.Start(cfg.ConfigPath);
         }
 
-        private void Button_Click_10(object sender, RoutedEventArgs e)
+        private void UIFastQuit(object sender, RoutedEventArgs e)
         {
             cfg.SaveImmediately();
             Extensions.FastQuit();
         }
 
-        private void Button_Click_11(object sender, RoutedEventArgs e)
+        private void UIDeleteEmptyCollection(object sender, RoutedEventArgs e)
         {
             var collections = cfg.Collections.Where(x => x.Images.Count == 0 && !(x.Name == "Sukidesu")).ToList();
             var count = collections.Count;
@@ -878,12 +906,12 @@ namespace osp
             }
             CollectionFlyout.Visibility = Visibility.Visible;
         }
-        private void Button_Click_12(object sender, RoutedEventArgs e)
+        private void UIOpenCollections(object sender, RoutedEventArgs e)
         {
             OpenCollections();
         }
 
-        private void Button_Click_13(object sender, RoutedEventArgs e)
+        private void UICloseCollections(object sender, RoutedEventArgs e)
         {
             CollectionFlyout.Visibility = Visibility.Collapsed;
         }
@@ -955,6 +983,7 @@ namespace osp
                 });
                 colpage.ContextMenu = menu2;
                 var colpage2 = new ScrollViewer();
+                colpage2.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
                 var colpage2_g = new StackPanel();
                 colpage2.Content = colpage2_g;
                 var colpage2_tb = new TextBox() { MinHeight = 50, HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -963,8 +992,8 @@ namespace osp
                 colpage2_tb.AcceptsTab = true;
                 colpage2_tb.TextChanged += (s, e) => { collection.Description = colpage2_tb.Text; };
                 colpage2_g.Children.Add(colpage2_tb);
-                var colpage2_gv = new Grid();
-                MakeGridView(collection.Images.Select(x => cfg.Caches.Find(y => y.MapsetId == x)).Where(y => y != null).Select(x =>
+                var colpage2_gv = new FlexPanel();
+                foreach (var item in collection.Images.Select(x => cfg.Caches.Find(y => y.MapsetId == x)).Where(y => y != null).Select(x =>
                 {
                     var container = new Grid()
                     {
@@ -1098,7 +1127,7 @@ namespace osp
                             plain.Visibility = Visibility.Visible;
                             collection.Images.Remove(x.MapsetId);
                             log.Log($"Removed {x.Name} from {collection.Name}");
-                            Button_Click_17(null, null);
+                            UICloseCollection(null, null);
                         });
                         OpenCollectionPictureButton.Command = Extensions.MakeCommand(_ =>
                         {
@@ -1139,7 +1168,10 @@ namespace osp
                         });
                     };
                     return container;
-                }), colpage2_gv, 3);
+                }))
+                {
+                    colpage2_gv.Children.Add(item);
+                }
                 colpage2_g.Children.Add(colpage2_gv);
                 colpage.Content = colpage2;
                 Collections.Items.Add(colpage);
@@ -1147,10 +1179,11 @@ namespace osp
             TabItem dislikepage = new TabItem() { Header = "回收站" };
             var dislikepage2 = new ScrollViewer();
             var dislikepage2_g = new StackPanel();
+            dislikepage2.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
             dislikepage2.Content = dislikepage2_g;
             dislikepage2_g.Children.Add(new TextBlock() { Text = "欢迎来到回收站\n下面会显示你之前加入过不喜欢的图片,单击还原" });
-            var dislikepage2_gv = new Grid();
-            MakeGridView(cfg.DislikedImage.Select(x => cfg.Caches.Find(y => y.MapsetId == x)).Where(y => y != null).Select(x =>
+            var dislikepage2_gv = new FlexPanel();
+            foreach (var x in cfg.DislikedImage.Select(y => cfg.Caches.Find(z => z.MapsetId == y)).Where(y => y != null))
             {
                 var container = new Grid()
                 {
@@ -1185,8 +1218,8 @@ namespace osp
                     cover.Visibility = Visibility.Visible;
                     plain.Visibility = Visibility.Visible;
                 };
-                return container;
-            }), dislikepage2_gv, 3);
+                dislikepage2_gv.Children.Add(container);
+            }
             dislikepage2_g.Children.Add(dislikepage2_gv);
             dislikepage.Content = dislikepage2;
             Collections.Items.Add(dislikepage);
@@ -1242,7 +1275,7 @@ namespace osp
             RefreshCollections();
         }
 
-        private void Button_Click_16(object sender, RoutedEventArgs e)
+        private void UICreateCollection(object sender, RoutedEventArgs e)
         {
             InputBox("输入新的收藏夹名", "", null, x =>
             {
@@ -1254,25 +1287,25 @@ namespace osp
             });
         }
 
-        private void Button_Click_17(object sender, RoutedEventArgs e)
+        private void UICloseCollection(object sender, RoutedEventArgs e)
         {
             CollectionsBack.Effect = null;
             CollectionDetailView.Visibility = Visibility.Collapsed;
         }
 
-        private void CollectionDetailViewImage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void UIOpenImageViewer(object sender, MouseButtonEventArgs e)
         {
-            FullViewImg.Source = CollectionDetailViewImage.Source;
+            FullViewImg.Source = ((Image)sender).Source;
             FullViewScrollViewer.Visibility = Visibility.Visible;
         }
 
-        private void FullViewScrollViewer_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        private void UICloseImageViewer(object sender, MouseButtonEventArgs e)
         {
             e.Handled = true;
             FullViewScrollViewer.Visibility = Visibility.Collapsed;
         }
 
-        private void FullViewScrollViewer_MouseWheel(object sender, MouseWheelEventArgs e)
+        private void UICtrlScale(object sender, MouseWheelEventArgs e)
         {
             if (Keys.ControlKey.IsPressed())
             {
@@ -1291,7 +1324,7 @@ namespace osp
             }
         }
 
-        private void Button_Click_18(object sender, RoutedEventArgs e)
+        private void UIStopAudio(object sender, RoutedEventArgs e)
         {
             if (audiostream != null && audiostream.Playing)
             {
@@ -1301,7 +1334,7 @@ namespace osp
             }
         }
 
-        private void Button_Click_19(object sender, RoutedEventArgs e)
+        private void UIChangeSettingPassword(object sender, RoutedEventArgs e)
         {
             if (!string.IsNullOrEmpty(cfg.SettingPasswordHash))
             {
@@ -1340,7 +1373,7 @@ namespace osp
             });
         }
 
-        private void Button_Click_20(object sender, RoutedEventArgs e)
+        private void UIChangeCollectionPassword(object sender, RoutedEventArgs e)
         {
             if (cfg.CollectionPasswordHash != null || cfg.SettingPasswordHash != null)
             {
@@ -1358,17 +1391,17 @@ namespace osp
             ChangeCollectionPassword();
         }
 
-        private void Button_Click_21(object sender, RoutedEventArgs e)
+        private void UIFixFolderAccess(object sender, RoutedEventArgs e)
         {
 
         }
 
-        private void Hyperlink_Click(object sender, RoutedEventArgs e)
+        private void UIOpenCreatorLink(object sender, RoutedEventArgs e)
         {
             Process.Start("https://github.com/telecomadm1145");
         }
 
-        private void Hyperlink_Click_1(object sender, RoutedEventArgs e)
+        private void UIOpenProjectLink(object sender, RoutedEventArgs e)
         {
             Process.Start("https://github.com/telecomadm1145/osuscreenprotector");
         }
@@ -1437,7 +1470,7 @@ namespace osp
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
         }
-        private void SelectionInput<T>(string message,List<T> selections,T defaultitem = null, Action OnCanceled = null, Action<T> OnInputCompleted = null) where T :class
+        private void SelectionInput<T>(string message, List<T> selections, T defaultitem = null, Action OnCanceled = null, Action<T> OnInputCompleted = null) where T : class
         {
             PasswordBoxInput.Visibility = Visibility.Collapsed;
             InputBoxInput.Visibility = Visibility.Collapsed;
@@ -1470,17 +1503,12 @@ namespace osp
             });
         }
 
-        private void Button_Click_22(object sender, RoutedEventArgs e)
+        private void UIClearRank(object sender, RoutedEventArgs e)
         {
-
+            cfg.Ranks.ForEach(x => x.Rank = 1);
         }
 
-        private void Button_Click_23(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void Button_Click_24(object sender, RoutedEventArgs e)
+        private void UIHigherRank(object sender, RoutedEventArgs e)
         {
             var rank = cfg.Ranks.FirstOrDefault(x => x.MapsetId == curbmp.MapsetId);
             if (rank == null)
@@ -1496,7 +1524,7 @@ namespace osp
 #endif
         }
 
-        private void Button_Click_25(object sender, RoutedEventArgs e)
+        private void UILowerRank(object sender, RoutedEventArgs e)
         {
             var rank = cfg.Ranks.FirstOrDefault(x => x.MapsetId == curbmp.MapsetId);
             if (rank == null)
@@ -1513,34 +1541,99 @@ namespace osp
 #endif
         }
 
-        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        private void UIAddCollection(object sender, RoutedEventArgs e)
         {
-            SelectionInput("选择要加入的收藏夹", cfg.Collections,cfg.Collections.First(x=>string.Compare(x.Name,"sukidesu",true) == 0), null, x => {
+            SelectionInput("选择要加入的收藏夹", cfg.Collections, cfg.Collections.First(x => string.Compare(x.Name, "sukidesu", true) == 0), null, x =>
+            {
+                if (x.Images.Contains(curbmp.MapsetId))
+                {
+                    PushNotification($"{curbmp.Title} 已经在 {x.Name} 里面了");
+                    return;
+                }
                 x.Images.Add(curbmp.MapsetId);
                 PushNotification($"已将 {curbmp.Title} 加入 {x.Name} 收藏夹");
                 RefreshCollections();
             });
         }
 
-        private void Button_Click_26(object sender, RoutedEventArgs e)
+        private void UIDebugShowRanks(object sender, RoutedEventArgs e)
         {
-            MessageBox($"权重数据:\r\n{string.Join("\r\n",cfg.Ranks.OrderBy(x=>x.GetRelativeRank()).Select(x=> $"{cfg.Caches.Find(y=> y.MapsetId ==x.MapsetId).Name}({x.MapsetId}) : {x.GetRelativeRank()}(Real:{x.Rank})"))}");
+            MessageBox($"权重数据:\r\n{string.Join("\r\n", cfg.Ranks.OrderBy(x => x.GetRelativeRank()).Select(x => $"{cfg.Caches.Find(y => y.MapsetId == x.MapsetId).Name}({x.MapsetId}) : {x.GetRelativeRank()}(Real:{x.Rank})"))}");
         }
 
-        private void Button_Click_27(object sender, RoutedEventArgs e)
+        private void UIDebugShowCache(object sender, RoutedEventArgs e)
         {
-            MessageBox($"缓存数据:\r\n最近更新: {cfg.LastSongsFolderModifiyTime}\r\n缓存条数: {cfg.Caches.Count}\r\n{string.Join("\r\n", cfg.Caches.Where(x=>x.Beatmaps.Count >0).Select(x => $"{x.Beatmaps.FirstOrDefault().Artist} - {x.Name} : {x.Dir}"))}");
+            MessageBox($"缓存数据:\r\n最近更新: {cfg.LastSongsFolderModifiyTime}\r\n缓存条数: {cfg.Caches.Count}\r\n{string.Join("\r\n", cfg.Caches.Where(x => x.Beatmaps.Count > 0).Select(x => $"{x.Beatmaps.FirstOrDefault().Artist} - {x.Name} : {x.Dir}"))}");
         }
         private bool nofitifactiontolog = true;
-        private void Button_Click_28(object sender, RoutedEventArgs e)
+        private void UIRedirectLog(object sender, RoutedEventArgs e)
         {
-            log.LogHook += (s, e2) => {
-                Dispatcher.BeginInvoke((Action)(() => {
+            log.LogHook += (s, e2) =>
+            {
+                Dispatcher.BeginInvoke((Action)(() =>
+                {
                     PushNotification(e2.Trim(), 3000, null);
                 }));
             };
-            nofitifactiontolog = false; 
+            nofitifactiontolog = false;
             log.Log("已将日志重定向到通知");
+        }
+
+        private void UIOpenImageManagingFlyout(object sender, RoutedEventArgs e)
+        {
+            ImageManagingFlyout.Visibility = Visibility.Visible;
+        }
+
+        private void UICloseImageManagingFlyout(object sender, RoutedEventArgs e)
+        {
+            EditorViewImage.Source = null;
+            ImageManagingFlyout.Visibility = Visibility.Collapsed;
+        }
+
+        private void Button_Click_29(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Button_Click_30(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Button_Click_31(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void UIOpenAudioPath(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void UIOpenImagePath(object sender, RoutedEventArgs e)
+        {
+
+        }
+        private void SetSafeAreaFromConfig()
+        {
+            SafeAreaOutter.Margin = cfg.SafeArea;
+        }
+        private void UIApplySafeArea(object sender, RoutedEventArgs e)
+        {
+            cfg.SafeArea = UIGetSafeArea();
+            SetSafeAreaFromConfig();
+            cfg.Save();
+        }
+
+        private Thickness UIGetSafeArea()
+        {
+            return new Thickness(SafeAreaThicknessLeft.Value, SafeAreaThicknessTop.Value, SafeAreaThicknessRight.Value, SafeAreaThicknessBottom.Value);
+        }
+
+        private void UIGenerateMapsetId(object sender, RoutedEventArgs e)
+        {
+            var lastestid = cfg.Caches.Max(x => x.MapsetId);
+            EditorMapsetId.Text = random.Next((int)(lastestid + 100000), int.MaxValue).ToString();
         }
     }
 }

@@ -200,6 +200,15 @@ ExitProcess(exitcode);
                 return BitConverter.ToString(hash.Take(8).ToArray()).Replace("-", "");
             }
         }
+        public static string GenerateRandomPasswordString(int length)
+        {
+            List<char> PasswordChars = new();
+            PasswordChars.AddRange(Enumerable.Range('A', 26).Select(x=>(char)x));
+            PasswordChars.AddRange(Enumerable.Range('a', 26).Select(x => (char)x));
+            PasswordChars.AddRange(Enumerable.Range('0', 10).Select(x => (char)x));
+            PasswordChars.Add('-');
+            return new string(Enumerable.Range(0, length).Select(x => PasswordChars.Random()).ToArray());
+        }
     }
 
 }

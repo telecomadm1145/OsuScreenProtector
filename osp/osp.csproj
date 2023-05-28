@@ -11,7 +11,12 @@
 		<LangVersion>10</LangVersion>
 		<ApplicationIcon>Icon.ico</ApplicationIcon>
 		<NoWin32Manifest>true</NoWin32Manifest>
+		<Platforms>x86;x64</Platforms>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="MainWindow.xaml~RF8d9a975.TMP" />
+	</ItemGroup>
 
 	<ItemGroup>
 	  <Content Include="Icon.ico" />
@@ -20,8 +25,25 @@
 	<ItemGroup>
 		<Reference Include="PresentationFramework.Aero" />
 		<Reference Include="PresentationFramework.Aero2" />
+		<Reference Include="System.Net.Http" />
+		<PackageReference Include="Costura.Fody" Version="4.1.0" />
 		<PackageReference Include="ManagedBass" Version="3.1.1" />
 		<PackageReference Include="System.Text.Json" Version="7.0.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="BassDll.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>BassDll.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="BassDll.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>BassDll.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
 	</ItemGroup>
 
 </Project>

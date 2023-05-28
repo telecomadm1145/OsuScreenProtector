@@ -21,6 +21,7 @@ namespace osp
             Config.Instance.RebuildImageCache();
             new Power().EnableConstantDisplayAndPower(true);
             Extensions.SetAutostart(Config.Instance.Autostart);
+            BassDllLoader.LoadFromResource();
             base.OnStartup(e);
         }
     }
