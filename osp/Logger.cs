@@ -66,6 +66,10 @@ namespace OsuScreenProtector
             {
                 LogHook(this, msg);
             }
+#if DEBUG
+            if (Debugger.IsAttached)
+                Debug.WriteLine(message);
+#endif
         }
 
         public void Flush()

@@ -63,94 +63,112 @@ namespace OsuScreenProtector
             if (!Directory.Exists(songs))
                 throw new DirectoryNotFoundException();
             var newlast = Directory.GetLastWriteTimeUtc(songs);
-            return newlast > LastSongsFolderModifiyTime;
+            return newlast > LastSongsFolderModifiyTime && !building;
         }
+        public bool IsBuilding()
+        {
+            return building;
+        }
+        private bool building = false;
         public void RebuildImageCache()
         {
             var songs = Path.Combine(OsuPath, "Songs");
             if (!Directory.Exists(songs))
                 throw new DirectoryNotFoundException();
-            var count = 0;
-            var newlast = Directory.GetLastWriteTimeUtc(songs);
-            if (newlast > LastSongsFolderModifiyTime)
+            if (building)
             {
-                Logger.Instance.Log("Change detected,rebuilding cache...", "Info");
-                var safequeue = new ConcurrentQueue<string>();
-                Directory.EnumerateDirectories(songs).ToList().ForEach(x => safequeue.Enqueue(x));
-                List<Thread> workthreads = new List<Thread>();
-                for (int i = 0; i < Environment.ProcessorCount * 2; i++)
+                Logger.Instance.Log("Already building cahce...wont build.");
+                return;
+            }
+            try
+            {
+                building = true;
+                var count = 0;
+                var newlast = Directory.GetLastWriteTimeUtc(songs);
+                if (newlast > LastSongsFolderModifiyTime)
                 {
-                    var thd = new Thread(() =>
+                    Logger.Instance.Log("Change detected,rebuilding cache...", "Info");
+                    var safequeue = new ConcurrentQueue<string>();
+                    Directory.EnumerateDirectories(songs).ToList().ForEach(x => safequeue.Enqueue(x));
+                    List<Thread> workthreads = new List<Thread>();
+                    for (int i = 0; i < Environment.ProcessorCount * 2; i++)
                     {
-                        Logger.Instance.Log($"Thread {i} started to work");
-                        var dir_ = "";
-                        while (true)
+                        var thd = new Thread(() =>
                         {
-                            dir_ = null;
-                            safequeue.TryDequeue(out dir_);
-                            if (dir_ == null)
+                            Logger.Instance.Log($"Thread {i} started to work");
+                            var dir_ = "";
+                            while (true)
                             {
-                                break;
-                            }
-                            var dir = Environment.OSVersion.Version.Major >= 10 ? dir_ : "\\\\?\\" + dir_; // long path aware issue
-                            if (Directory.GetLastWriteTimeUtc(dir) > LastSongsFolderModifiyTime)
-                            {
-                                Logger.Instance.Log($"Reading {dir}...", "Info");
-                                var cache = new CacheEntry();
-                                foreach (var dir2 in Directory.EnumerateFiles(dir))
+                                dir_ = null;
+                                safequeue.TryDequeue(out dir_);
+                                if (dir_ == null)
                                 {
-                                    if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
+                                    break;
+                                }
+                                var dir = Environment.OSVersion.Version.Major >= 10 ? dir_ : "\\\\?\\" + dir_; // long path aware issue
+                                if (Directory.GetLastWriteTimeUtc(dir) > LastSongsFolderModifiyTime)
+                                {
+                                    Logger.Instance.Log($"Reading {dir}...", "Info");
+                                    var cache = new CacheEntry();
+                                    foreach (var dir2 in Directory.EnumerateFiles(dir))
                                     {
-                                        using (var sr = new StreamReader(dir2))
+                                        if (dir2.EndsWith(".osu", StringComparison.CurrentCultureIgnoreCase))
                                         {
-                                            try
+                                            using (var sr = new StreamReader(dir2))
                                             {
-                                                var bmp = Beatmap.Parse(sr);
-                                                bmp.SongPath = Path.Combine(dir, bmp.SongPath);
-                                                bmp.BgPath = Path.Combine(dir, bmp.BgPath);
-                                                if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
+                                                try
                                                 {
-                                                    cache.MapsetId = bmp.MapsetId;
-                                                    cache.Name = bmp.Title;
-                                                    cache.Dir = dir;
-                                                    cache.Beatmaps.Add(bmp);
-                                                    Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
+                                                    var bmp = Beatmap.Parse(sr);
+                                                    bmp.SongPath = Path.Combine(dir, bmp.SongPath);
+                                                    bmp.BgPath = Path.Combine(dir, bmp.BgPath);
+                                                    if (File.Exists(bmp.BgPath) && File.Exists(bmp.SongPath))
+                                                    {
+                                                        cache.MapsetId = bmp.MapsetId;
+                                                        cache.Name = bmp.Title;
+                                                        cache.Dir = dir;
+                                                        cache.Beatmaps.Add(bmp);
+                                                        Logger.Instance.Log($"Successfully added song {bmp.Artist} - {bmp.Title}.", "Info");
+                                                    }
+                                                    count++;
                                                 }
-                                                count++;
-                                            }
-                                            catch
-                                            {
-                                                Logger.Instance.Log($"Failed to process {dir2}.", "Info");
+                                                catch
+                                                {
+                                                    Logger.Instance.Log($"Failed to process {dir2}.", "Info");
+                                                }
                                             }
                                         }
                                     }
-                                }
-                                lock (Caches)
-                                {
-                                    var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
-                                    if (same != null)
+                                    lock (Caches)
                                     {
-                                        Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
-                                        Caches.Remove(same);
+                                        var same = Caches.FirstOrDefault(x => x.Dir == cache.Dir);
+                                        if (same != null)
+                                        {
+                                            Logger.Instance.Log($"Updating {same.Name}({same.MapsetId})");
+                                            Caches.Remove(same);
+                                        }
+                                        if (!Ranks.Any(x => x.MapsetId == cache.MapsetId))
+                                            Ranks.Add(new RankEntry() { MapsetId = cache.MapsetId, Rank = 1 });
+                                        Caches.Add(cache);
                                     }
-                                    if (!Ranks.Any(x => x.MapsetId == cache.MapsetId))
-                                        Ranks.Add(new RankEntry() { MapsetId = cache.MapsetId, Rank = 1 });
-                                    Caches.Add(cache);
                                 }
                             }
-                        }
-                        Logger.Instance.Log($"Thread {i} finished work");
-                    });
-                    thd.Start();
-                    workthreads.Add(thd);
+                            Logger.Instance.Log($"Thread {i} finished work");
+                        });
+                        thd.Start();
+                        workthreads.Add(thd);
+                    }
+                    while (!workthreads.All(x => !x.IsAlive))
+                    {
+                        Thread.Sleep(0);
+                    }
+                    Logger.Instance.Log($"Updated or loaded {count} beatmaps");
+                    LastSongsFolderModifiyTime = newlast;
+                    Save();
                 }
-                while (!workthreads.All(x => !x.IsAlive))
-                {
-                    Thread.Sleep(0);
-                }
-                Logger.Instance.Log($"Updated or loaded {count} beatmaps");
-                LastSongsFolderModifiyTime = newlast;
-                Save();
+            }
+            finally
+            {
+                building = false;
             }
         }
         public void Save()
@@ -216,6 +234,7 @@ namespace OsuScreenProtector
             public string Artist { get; set; }
             public string TitleUnicode { get; set; }
             public string ArtistUnicode { get; set; }
+            public string Source { get; set; }
             public string SongPath { get; set; }
             public string BgPath { get; set; }
             public long Id { get; set; }
@@ -292,6 +311,10 @@ namespace OsuScreenProtector
                     if (key == "artistunicode")
                     {
                         bmp.ArtistUnicode = value;
+                    }
+                    if (key =="source")
+                    {
+                        bmp.Source = value;
                     }
                 }
                 return bmp;

@@ -28,6 +28,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using static OsuScreenProtector.Config;
 using System.Net.Http;
+using Microsoft.Win32;
 
 namespace osp
 {
@@ -305,9 +306,14 @@ namespace osp
             };
             UpdateBgDim();
 
-            RoutedPropertyChangedEventHandler<double> changed = (_, _) => {
+            RoutedPropertyChangedEventHandler<double> changed = (_, _) =>
+            {
                 SafeAreaPreview.Margin = UIGetSafeArea();
             };
+            SafeAreaThicknessLeft.Value = cfg.SafeArea.Left;
+            SafeAreaThicknessRight.Value = cfg.SafeArea.Right;
+            SafeAreaThicknessBottom.Value = cfg.SafeArea.Bottom;
+            SafeAreaThicknessTop.Value = cfg.SafeArea.Top;
             SafeAreaThicknessLeft.ValueChanged += changed;
             SafeAreaThicknessRight.ValueChanged += changed;
             SafeAreaThicknessTop.ValueChanged += changed;
@@ -318,7 +324,9 @@ namespace osp
             };
             SetSafeAreaFromConfig();
 
-            UIScaleSlider.ValueChanged += (_, _) => { 
+            UIScaleSlider.Value = cfg.Scale * 100;
+            UIScaleSlider.ValueChanged += (_, _) =>
+            {
                 cfg.Scale = UIScaleSlider.Value / 100;
             };
             UIScaleSlider.PreviewMouseUp += (_, _) =>
@@ -332,6 +340,33 @@ namespace osp
                 cfg.Save();
             };
             SetUIScaleFromConfig();
+            bool loadingimg = false;
+            EditorImagePath.TextChanged += (_, _) =>
+            {
+                if (loadingimg)
+                {
+                    return;
+                }
+                var path = EditorImagePath.Text;
+                if (File.Exists(path))
+                {
+                    loadingimg = true;
+                    Task.Run(() =>
+                    {
+                        var img = path.LoadImage();
+                        img.Freeze();
+                        Dispatcher.Invoke(() =>
+                        {
+                            EditorViewImage.Source = img;
+                        });
+                        loadingimg = false;
+                    });
+                }
+                else
+                {
+                    EditorViewImage.Source = null;
+                }
+            };
         }
         private void SetUIScaleFromConfig()
         {
@@ -460,10 +495,10 @@ namespace osp
             log.Log("loading img.");
             Task.Run(() =>
             {
+                var cursor = this.cursor;
             reload:
                 Config.Beatmap beatmap = null;
                 ImageSource imageSource = null;
-                var cursor = this.cursor;
                 try
                 {
                     beatmap = cfg.Caches[cursor].Beatmaps.Random();
@@ -504,12 +539,13 @@ namespace osp
                     }
                     goto reload;
                 }
+                this.cursor = cursor;
                 Dispatcher.BeginInvoke((Action)(() =>
                 {
                     Bg.Source = imageSource;
                     DetailInfoBox.Inlines.Clear();
                     var span = new Span();
-                    var inline1 = new Run($"{beatmap.Artist} - {beatmap.Title}\n") { FontSize = 18, ToolTip = $"{beatmap.ArtistUnicode} - {beatmap.TitleUnicode}" };
+                    var inline1 = new Run($"{beatmap.Artist} - {beatmap.Title}\n") { FontSize = 18, ToolTip = $"{beatmap.ArtistUnicode}{(string.IsNullOrWhiteSpace(beatmap.Source) ? "" : $"({beatmap.Source})")} - {beatmap.TitleUnicode}" };
 
                     ContextMenu ctx = new ContextMenu();
                     MenuItem copy1 = new MenuItem() { Header = "复制全称" };
@@ -530,6 +566,9 @@ namespace osp
                     MenuItem copy6 = new MenuItem() { Header = "复制艺术家(罗马音)" };
                     copy6.Click += (s, e) => Clipboard.SetText(beatmap.Artist);
                     ctx.Items.Add(copy6);
+                    MenuItem copy8 = new MenuItem() { Header = "复制来源" };
+                    copy8.Click += (s, e) => Clipboard.SetText(beatmap.Source);
+                    ctx.Items.Add(copy8);
                     if (beatmap.MapsetId != -1 && beatmap.Id != 0)
                     {
                         MenuItem copy7 = new MenuItem() { Header = "复制Id" };
@@ -826,6 +865,24 @@ namespace osp
 
         private void UIRebuildCache(object sender, RoutedEventArgs e)
         {
+            if (cfg.IsBuilding())
+            {
+                PushNotification("正在重建呢,请坐和放宽");
+                return;
+            }
+            if (!cfg.GetShouldRebuildImageCache())
+            {
+                MessageBox("没有什么要重建的,点击确定将继续重建", null, () =>
+                {
+                    RebuildImageCache2();
+                });
+                return;
+            }
+            RebuildImageCache2();
+        }
+
+        private void RebuildImageCache2()
+        {
             bool finished = false;
             PushNotification("正在后台重建缓存...", double.MaxValue, (_) => finished);
             Stopwatch sw = new Stopwatch();
@@ -835,6 +892,11 @@ namespace osp
 
         private void UIForceRebuildCache(object sender, RoutedEventArgs e)
         {
+            if (cfg.IsBuilding())
+            {
+                PushNotification("正在重建呢,请坐和放宽");
+                return;
+            }
             cfg.LastSongsFolderModifiyTime = DateTime.MinValue;
             cfg.Caches.Clear();
             stoptimer = true;
@@ -1405,7 +1467,7 @@ namespace osp
         {
             Process.Start("https://github.com/telecomadm1145/osuscreenprotector");
         }
-        private void InputBox(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null)
+        private void InputBox(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null,bool multiline = false)
         {
             ComboBoxInput.Visibility = Visibility.Collapsed;
             PasswordBoxInput.Visibility = Visibility.Collapsed;
@@ -1417,6 +1479,7 @@ namespace osp
                 InputBoxFlyout.Visibility = Visibility.Collapsed;
             });
             InputBoxDesc.Text = message;
+            InputBoxInput.AcceptsReturn = multiline;
             InputBoxInput.Visibility = Visibility.Visible;
             InputBoxInput.Text = prompt;
             InputBoxInput.Focus();
@@ -1597,7 +1660,32 @@ namespace osp
 
         private void Button_Click_30(object sender, RoutedEventArgs e)
         {
-
+            try
+            {
+                CacheEntry ce = new()
+                {
+                    MapsetId = int.Parse(EditorMapsetId.Text),
+                    Name = EditorTitle.Text
+                };
+                ce.Beatmaps.Add(new Beatmap()
+                {
+                    MapsetId = ce.MapsetId,
+                    Title = EditorTitle.Text,
+                    TitleUnicode = EditorTitle.Text,
+                    Artist = EditorArtist.Text,
+                    ArtistUnicode = EditorArtist.Text,
+                    Source = EditorSource.Text,
+                    SongPath = EditorAudioPath.Text,
+                    BgPath = EditorImagePath.Text,
+                    PreviewPoint = double.Parse(EditorAudioPreviewPoint.Text),
+                });
+                cfg.Caches.Add(ce);
+                cfg.Save();
+            }
+            catch (Exception ex)
+            {
+                PushNotification(ex.Message);
+            }
         }
 
         private void Button_Click_31(object sender, RoutedEventArgs e)
@@ -1607,12 +1695,30 @@ namespace osp
 
         private void UIOpenAudioPath(object sender, RoutedEventArgs e)
         {
-
+            OpenFileDialog ofd = new();
+            ofd.CheckFileExists = true;
+            ofd.Multiselect = false;
+            ofd.FileOk += (_, _) =>
+            {
+                EditorAudioPath.Text = ofd.FileName;
+            };
+            ofd.Title = "选择音频文件";
+            ofd.Filter = "MPEG 音频|*.mp3;*.m4a|OGG 音频|*.ogg|所有文件|*.*";
+            ofd.ShowDialog();
         }
 
         private void UIOpenImagePath(object sender, RoutedEventArgs e)
         {
-
+            OpenFileDialog ofd = new();
+            ofd.CheckFileExists = true;
+            ofd.Multiselect = false;
+            ofd.FileOk += (_, _) =>
+            {
+                EditorImagePath.Text = ofd.FileName;
+            };
+            ofd.Title = "选择图片文件";
+            ofd.Filter = "JPEG 图像|*.jpeg;*.jpg|PNG 图像|*.png|所有文件|*.*";
+            ofd.ShowDialog();
         }
         private void SetSafeAreaFromConfig()
         {
@@ -1632,8 +1738,50 @@ namespace osp
 
         private void UIGenerateMapsetId(object sender, RoutedEventArgs e)
         {
-            var lastestid = cfg.Caches.Max(x => x.MapsetId);
-            EditorMapsetId.Text = random.Next((int)(lastestid + 100000), int.MaxValue).ToString();
+        rerandom:
+            int rnd = random.Next(10000000, int.MaxValue);
+            if (cfg.Caches.Any(x => x.MapsetId == rnd))
+                goto rerandom;
+            EditorMapsetId.Text = rnd.ToString();
+        }
+
+        private void UIDebugJumpToId(object sender, RoutedEventArgs e)
+        {
+            InputBox("输入要跳转的 Mapset Id", "", null, x =>
+            {
+                if (long.TryParse(x, out long id))
+                {
+                    var bmp = cfg.Caches.FirstOrDefault(x=> x.MapsetId == id);
+                    if (bmp == null)
+                    {
+                        PushNotification("输入的Id所对应的地图不存在");
+                        return;
+                    }
+                    cursor = cfg.Caches.IndexOf(bmp);
+                    LoadImg();
+                    return;
+                }
+                PushNotification("输入不正确");
+            });
+        }
+
+        private void UIDebugJumpToIndex(object sender, RoutedEventArgs e)
+        {
+            InputBox($"输入要跳转的索引值(最大{cfg.Caches.Count-1})", "", null, x =>
+            {
+                if (int.TryParse(x, out int index) && index >= 0  && index < cfg.Caches.Count)
+                {
+                    cursor = index;
+                    LoadImg();
+                    return;
+                }
+                PushNotification("输入不正确");
+            });
+        }
+
+        private void UIDebugShowIndex(object sender, RoutedEventArgs e)
+        {
+            PushNotification($"{cursor}/{cfg.Caches.Count}",2000);
         }
     }
 }

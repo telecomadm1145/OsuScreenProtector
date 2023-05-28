@@ -65,7 +65,7 @@
                                     <MenuItem Header="加入默认收藏" Click="UIAddSukiCollection">
 
                                     </MenuItem>
-                                    <MenuItem Header="加入收藏..." Click="UIAddSukiCollection">
+                                    <MenuItem Header="加入收藏..." Click="UIAddCollection">
 
                                     </MenuItem>
                                 </ContextMenu>
@@ -236,6 +236,9 @@
                                             <Button Content="显示日志" Margin="5" Click="UIRedirectLog"/>
                                             <Button Content="显示缓存" Margin="5" Click="UIDebugShowCache"/>
                                             <Button Content="显示权重" Margin="5" Click="UIDebugShowRanks"/>
+                                            <Button Content="跳转到指定Id" Margin="5" Click="UIDebugJumpToId"/>
+                                            <Button Content="跳转到指定索引" Margin="5" Click="UIDebugJumpToIndex"/>
+                                            <Button Content="显示当前索引" Margin="5" Click="UIDebugShowIndex"/>
                                         </local:StackPanel>
                                         <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="#50ffffff">
                                     <Hyperlink Click="UIOpenProjectLink" ToolTip="https://github.com/telecomadm1145/osuscreenprotector">Created</Hyperlink> by <Hyperlink Click="UIOpenCreatorLink" ToolTip="https://github.com/telecomadm1145">telecomadm1145</Hyperlink>.All rights reversed.
@@ -322,7 +325,7 @@
                                 <Image.OpacityMask>
                                     <VisualBrush>
                                         <VisualBrush.Visual>
-                                            <Border Background="White" CornerRadius="10" Width="{Binding ActualWidth,ElementName=EditorViewImage}" Height="{Binding ActualHeight,ElementName=CollectionDetailViewImage}"/>
+                                            <Border Background="White" CornerRadius="10" Width="{Binding ActualWidth,ElementName=EditorViewImage}" Height="{Binding ActualHeight,ElementName=EditorViewImage}"/>
                                         </VisualBrush.Visual>
                                     </VisualBrush>
                                 </Image.OpacityMask>
@@ -338,19 +341,23 @@
                             艺术家: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorArtist"/>
                                 </TextBlock>
                                 <TextBlock>
+                            来源: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorSource"/>
+                                </TextBlock>
+                                <TextBlock>
                             图片路径: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorImagePath"/><Button Content="打开" TextBlock.BaselineOffset="14" Click="UIOpenImagePath"/>
                                 </TextBlock>
                                 <TextBlock>
                             音频路径: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorAudioPath"/><Button Content="打开" TextBlock.BaselineOffset="14" Click="UIOpenAudioPath"/>
                                 </TextBlock>
                                 <TextBlock>
+                            音频预览点: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorAudioPreviewPoint" ToolTip="秒"/>
+                                </TextBlock>
+                                <TextBlock>
                             Id: <TextBox TextBlock.BaselineOffset="14" Width="200" x:Name="EditorMapsetId"/><Button Content="生成" TextBlock.BaselineOffset="14" Click="UIGenerateMapsetId"/>
                                 </TextBlock>
                             </local:StackPanel>
                             <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.ColumnSpan="999" Grid.RowSpan="999">
-                                <Button Content="新建" Margin="10" Click="Button_Click_31"/>
-                                <Button Content="打开" Margin="10" Click="Button_Click_29"/>
-                                <Button Content="保存" Margin="10" Click="Button_Click_30"/>
+                                <Button Content="添加到缓存" Margin="10" Click="Button_Click_30"/>
                                 <Button Content="关闭" Margin="10" Click="UICloseImageManagingFlyout"/>
                             </local:StackPanel>
                         </Grid>
