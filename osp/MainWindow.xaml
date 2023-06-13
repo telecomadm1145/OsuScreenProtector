@@ -124,13 +124,17 @@
                                             右 <Slider x:Name="SafeAreaThicknessRight" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/>
                                             下 <Slider x:Name="SafeAreaThicknessBottom" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/><LineBreak/>
                                             统一 <Slider x:Name="SafeAreaThicknessUniform" Minimum="-20" Maximum="100" SmallChange="1" LargeChange="10" TickFrequency="10" TickPlacement="BottomRight" Orientation="Horizontal" Width="200" TextBlock.BaselineOffset="25"/><LineBreak/>
-                                            <Grid>
-                                                <Rectangle Fill="Black" Width="250" Height="250"/>
+                                            <Viewbox Width="250" Stretch="Uniform">
+                                                <Grid Background="Black">
+                                                                                                                                            <Grid Margin="200" Width="{Binding ActualWidth,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=Window}}" Height="{Binding ActualHeight,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=Window}}">
                                                                                             <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Rectangle Fill="Gray" Width="200" Height="200"/>
+                                                <Rectangle Fill="Gray"  Width="{Binding ActualWidth,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=Window}}" Height="{Binding ActualHeight,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=Window}}"/>
                                                 <Rectangle x:Name="SafeAreaPreview" Fill="White" Stroke="#ffff7070" StrokeThickness="2" StrokeDashCap="Flat" StrokeDashOffset="1"/>
                                                                                                 </Grid>
-                                            </Grid><LineBreak/><LineBreak/>
+                                            </Grid>    
+                                                </Grid>
+                                            </Viewbox>
+                                            <LineBreak/><LineBreak/>
                                             <Button Content="应用" Click="UIApplySafeArea"/>
                                         </TextBlock>
                                         <TextBlock ToolTip="不包括 Dpi 缩放">
@@ -208,6 +212,9 @@
                                         </TextBlock>
                                         <TextBlock Text="维护" FontSize="24"/>
                                         <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                            <Button Content="检查并更新" Margin="5" Click="Button_Click"/>
+                                        </local:StackPanel>
+                                        <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                             <Button Content="修改设置密码" Foreground="#ffff0000" Margin="5" Click="UIChangeSettingPassword"/>
                                             <Button Content="修改收藏密码" Foreground="#ffff0000" Margin="5" Click="UIChangeCollectionPassword"/>
                                         </local:StackPanel>
@@ -219,7 +226,7 @@
                                         <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                             <Button Content="移除所有不喜欢" Margin="5" Click="UIClearDislikes"/>
                                             <Button Content="移除所有收藏品" Margin="5" Click="UIClearCollection"/>
-                                            <Button Content="重置图片权重" Margin="5" Click="UIClearRank" ToolTip="当图片随机出现问题时"/>
+                                            <Button Content="重置图片权重" Margin="5" Click="UIResetRank" ToolTip="当图片随机出现问题时"/>
                                             <Button Content="移除空收藏夹" Margin="5" Click="UIDeleteEmptyCollection"/>
                                         </local:StackPanel>
                                         <local:StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
@@ -397,7 +404,7 @@
                     </Border>
                 </Grid>
                 <ScrollViewer HorizontalAlignment="Left" VerticalAlignment="Top" x:Name="NotificationScroller">
-                    <local:StackPanel Margin="0,0,0,0" x:Name="NotificationPanel">
+                    <local:StackPanel Margin="0,0,0,0" x:Name="NotificationPanel" Background="#01000000">
                         <!--flyout-->
                     </local:StackPanel>
                 </ScrollViewer>

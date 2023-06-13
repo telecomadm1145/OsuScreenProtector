@@ -3,7 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -16,6 +20,10 @@ namespace osp
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+            Dispatcher.UnhandledException += (_, e2) => {
+                Logger.Instance.Log(e2.Exception.ToString());
+                e2.Handled = true; 
+            };
             Config.Load();
             Logger.Instance.Setup();
             Config.Instance.RebuildImageCache();

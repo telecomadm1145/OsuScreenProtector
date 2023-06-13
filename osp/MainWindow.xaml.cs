@@ -42,7 +42,7 @@ namespace osp
             InitializeComponent();
 #if !DEBUG
             Hide();
-            Activated+=(s,e) => Topmost = true;
+            Activated += (s, e) => Topmost = true;
             WindowStyle = WindowStyle.None;
 #endif
             WindowState = WindowState.Maximized;
@@ -367,6 +367,89 @@ namespace osp
                     EditorViewImage.Source = null;
                 }
             };
+
+            MouseMove += (_, e2) =>
+            {
+                if (focused_notification is Panel c)
+                {
+                    if (c.Children[0] is FrameworkElement e)
+                    {
+                        var delta = e2.GetPosition(this) - focused_location;
+                        var orig = e.Margin;
+                        orig.Left = delta.X;
+                        e.SetCurrentValue(MarginProperty, orig);
+                    }
+                }
+            };
+            hc.DefaultRequestHeaders.Add("user-agent", "Mozilla/5.0");
+            var thd = new Thread(AutoUpdate);
+            thd.Start();
+        }
+        private HttpClient hc = new();
+        private bool update_ongoing = false;
+        private bool update_performed = false;
+        private void AutoUpdate()
+        {
+            if (cfg.ChecksUpdate)
+            {
+                while (!update_performed)
+                {
+                    if (!update_ongoing)
+                        CommitUpdate();
+                    Thread.Sleep(1000*60*5);
+                }
+            }
+        }
+        private async Task CommitUpdate()
+        {
+            update_ongoing = true;
+            try
+            {
+                var resp = await hc.GetAsync("https://api.github.com/repos/telecomadm1145/OsuScreenProtector/releases");
+                var dat = await resp.EnsureSuccessStatusCode().Content.ReadAsStringAsync();
+                var rel = System.Text.Json.JsonSerializer.Deserialize<GithubEntryClass.Release[]>(dat);
+                var maxium = rel.Max(x => double.TryParse(x.tag_name.TrimStart('v'), out double y) ? y : double.MinValue);
+                if (maxium > cfg.CurrentVersion)
+                {
+                    var lastupdate = rel.OrderBy(x => double.TryParse(x.tag_name.TrimStart('v'), out double y) ? y : double.MinValue).Last();
+                    var resname = Environment.Is64BitProcess ? "osp64.exe" : "osp32.exe";
+                    var asset = lastupdate.assets.First(x => x.name == resname);
+                    var url = asset.browser_download_url;
+                    var stm = await (await hc.GetAsync(url)).EnsureSuccessStatusCode().Content.ReadAsStreamAsync();
+                    string path = System.IO.Path.Combine(Environment.GetEnvironmentVariable("temp"), "ospupdatetemp.exe");
+                    var fs = File.OpenWrite(path);
+                    await stm.CopyToAsync(fs);
+                    var exeloc = Assembly.GetEntryAssembly().Location;
+                    File.Move(exeloc, exeloc + ".bak");
+                    File.Move(path, exeloc);
+                    fs.Dispose();
+                    stm.Dispose();
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (IsVisible)
+                            PushNotification($"应用已更新,请重启应用以完成.新版本{lastupdate.name}.", double.MaxValue);
+                        else
+                        {
+                            cfg.Save();
+                            Process.Start(exeloc);
+                            Extensions.FastQuit();
+                        }
+                    });
+                    update_performed = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Log(ex.ToString());
+                Dispatcher.Invoke(() =>
+                {
+                    PushNotification($"Unable to finish updating:{ex}");
+                });
+            }
+            finally
+            {
+                update_ongoing = false;
+            }
         }
         private void SetUIScaleFromConfig()
         {
@@ -690,6 +773,7 @@ namespace osp
         private void RandomImg()
         {
             breaktimer = true;
+        reentry:
             long targetbmp = 0;
             List<RankEntry> ranks = cfg.Ranks.Where(x => !cfg.DislikedImage.Contains(x.MapsetId)).ToList();
             if (ranks.Count == 0)
@@ -721,7 +805,15 @@ namespace osp
             }
             else
             {
-                cursor = cfg.Caches.IndexOf(cfg.Caches.First(x => x.MapsetId == targetbmp));
+                try
+                {
+                    cursor = cfg.Caches.IndexOf(cfg.Caches.First(x => x.MapsetId == targetbmp));
+                }
+                catch
+                {
+                    log.Log("ranks has some issues.");
+                    goto reentry;
+                }
             }
             log.Log($"{cursor}/{cfg.Caches.Count}");
             LoadImg();
@@ -763,24 +855,32 @@ namespace osp
                 }
             });
         }
-
+        private object? focused_notification;
+        private Point focused_location;
         private void PushNotification(string msg, double delay = 20000, Func<TimeSpan, bool> CanClose = null)
         {
             if (nofitifactiontolog)
                 Logger.Instance.Log(msg);
-            var msggrid = new Grid() { Width = 350, MinHeight = 50, Margin = new Thickness(5) };
+            var msggrid = new Grid() { HorizontalAlignment = HorizontalAlignment.Left };
+            var anicontainer = new Grid() { Width = 350, MinHeight = 50 };
             var border = new Border()
             {
                 Background = new SolidColorBrush(Colors.Black) { Opacity = .8 },
                 CornerRadius = new CornerRadius(10),
                 BorderBrush = new SolidColorBrush(Colors.Black) { Opacity = .9 },
                 BorderThickness = new Thickness(.5),
+                Margin = new Thickness(5),
             };
-            msggrid.Children.Add(border);
-            msggrid.Children.Add(new TextBlock() { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(10), Foreground = new SolidColorBrush(Colors.White), FontSize = 15 });
+            anicontainer.Children.Add(border);
+            border.Child = new TextBlock() { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(5), Foreground = new SolidColorBrush(Colors.White), FontSize = 15 };
+            msggrid.Children.Add(anicontainer);
             Storyboard autohide = new Storyboard();
-            autohide.Completed += (s, e) => NotificationPanel.Children.Remove(msggrid);
-            var closeani = new DoubleAnimation() { Duration = TimeSpan.FromSeconds(.5), EasingFunction = new SineEase(), To = 0 };
+            autohide.Completed += (s, e) =>
+            {
+                if (NotificationPanel.Children.Contains(msggrid))
+                    NotificationPanel.Children.Remove(msggrid);
+            };
+            var closeani = new DoubleAnimation() { Duration = TimeSpan.FromSeconds(.4), EasingFunction = new SineEase(), To = 0 };
             Storyboard.SetTargetProperty(closeani, new PropertyPath("Opacity"));
             autohide.Children.Add(closeani);
             var closeani2 = new ThicknessAnimation() { To = new Thickness(0, -200, 0, 0), EasingFunction = new SineEase(), Duration = TimeSpan.FromSeconds(.5) };
@@ -798,6 +898,39 @@ namespace osp
             NotificationScroller.ScrollToBottom();
             Stopwatch sw = new Stopwatch();
             sw.Start();
+            msggrid.MouseLeftButtonDown += (_, e) =>
+            {
+                focused_notification = msggrid;
+                focused_location = e.GetPosition(this);
+            };
+            // see .ctor();
+            void handler1(object _, EventArgs _2)
+            {
+                if (msggrid == focused_notification)
+                {
+                    if ((CanClose == null || CanClose(sw.Elapsed)))
+                    {
+                        var slide = anicontainer.Margin.Left;
+                        closeani2.To = new Thickness(slide * 1.8, 0, 0, 0);
+                        msggrid.BeginStoryboard(autohide);
+                        MouseLeftButtonUp -= handler1;
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            Storyboard slideback = new Storyboard();
+                            var closeani2 = new ThicknessAnimation() { To = new Thickness(0, 0, 0, 0), EasingFunction = new SineEase(), Duration = TimeSpan.FromSeconds(.5) };
+                            Storyboard.SetTargetProperty(closeani2, new PropertyPath("Margin"));
+                            slideback.Children.Add(closeani2);
+                            anicontainer.BeginStoryboard(slideback);
+                        });
+
+                    }
+                    focused_notification = null;
+                }
+            };
+            MouseLeftButtonUp += handler1;
             Task.Run(() =>
             {
                 while (sw.ElapsedMilliseconds <= delay && (CanClose == null || !CanClose(sw.Elapsed)) || sw.ElapsedMilliseconds < 1000)
@@ -1467,7 +1600,7 @@ namespace osp
         {
             Process.Start("https://github.com/telecomadm1145/osuscreenprotector");
         }
-        private void InputBox(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null,bool multiline = false)
+        private void InputBox(string message, string prompt, Action OnCanceled = null, Action<string> OnInputCompleted = null, bool multiline = false)
         {
             ComboBoxInput.Visibility = Visibility.Collapsed;
             PasswordBoxInput.Visibility = Visibility.Collapsed;
@@ -1566,9 +1699,10 @@ namespace osp
             });
         }
 
-        private void UIClearRank(object sender, RoutedEventArgs e)
+        private void UIResetRank(object sender, RoutedEventArgs e)
         {
-            cfg.Ranks.ForEach(x => x.Rank = 1);
+            cfg.Ranks.Clear();
+            cfg.Caches.ForEach(x => cfg.Ranks.Add(new() { MapsetId = x.MapsetId, Rank = 1 }));
         }
 
         private void UIHigherRank(object sender, RoutedEventArgs e)
@@ -1579,7 +1713,7 @@ namespace osp
                 PushNotification("错误：无法读取权重数据,请在设置中重建缓存");
                 return;
             }
-            rank.Rank -= 30;
+            rank.Rank -= 10;
 #if DEBUG
             PushNotification($"已提高 {curbmp.Title} 的权重到 {rank.GetRelativeRank()}");
 #else
@@ -1595,7 +1729,7 @@ namespace osp
                 PushNotification("错误：无法读取权重数据,请在设置中重建缓存");
                 return;
             }
-            rank.Rank += 20;
+            rank.Rank += 5;
 #if DEBUG
             PushNotification($"已降低 {curbmp.Title} 的权重到 {rank.GetRelativeRank()}");
 #else
@@ -1751,7 +1885,7 @@ namespace osp
             {
                 if (long.TryParse(x, out long id))
                 {
-                    var bmp = cfg.Caches.FirstOrDefault(x=> x.MapsetId == id);
+                    var bmp = cfg.Caches.FirstOrDefault(x => x.MapsetId == id);
                     if (bmp == null)
                     {
                         PushNotification("输入的Id所对应的地图不存在");
@@ -1767,9 +1901,9 @@ namespace osp
 
         private void UIDebugJumpToIndex(object sender, RoutedEventArgs e)
         {
-            InputBox($"输入要跳转的索引值(最大{cfg.Caches.Count-1})", "", null, x =>
+            InputBox($"输入要跳转的索引值(最大{cfg.Caches.Count - 1})", "", null, x =>
             {
-                if (int.TryParse(x, out int index) && index >= 0  && index < cfg.Caches.Count)
+                if (int.TryParse(x, out int index) && index >= 0 && index < cfg.Caches.Count)
                 {
                     cursor = index;
                     LoadImg();
@@ -1781,7 +1915,13 @@ namespace osp
 
         private void UIDebugShowIndex(object sender, RoutedEventArgs e)
         {
-            PushNotification($"{cursor}/{cfg.Caches.Count}",2000);
+            PushNotification($"{cursor}/{cfg.Caches.Count}", 2000);
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            PushNotification("检查更新中", double.MaxValue, (x) => !update_ongoing);
+            CommitUpdate();
         }
     }
 }

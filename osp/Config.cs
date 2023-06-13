@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -22,22 +23,37 @@ namespace OsuScreenProtector
         {
             if (Instance != null)
                 throw new InvalidOperationException();
+            return LoadReal();
+        }
+
+        private static Config LoadReal()
+        {
+            Instance = new Config();
             var dic = Environment.GetEnvironmentVariables(EnvironmentVariableTarget.User);
             if (dic.Contains(OsuPathToken))
             {
                 var osupath = (string)dic[OsuPathToken];
                 if (Directory.Exists(osupath))
                 {
+                    Instance.OsuPath = osupath;
                     var cfgpath = Path.Combine(osupath, ConfigName);
+                    if (File.Exists(cfgpath + ".swap"))
+                    {
+                        File.Move(cfgpath + ".swap", cfgpath);
+                        File.Delete(cfgpath + ".swap");
+                    }
                     if (File.Exists(cfgpath) & File.Exists(Path.Combine(osupath, "osu!.exe")))
                     {
                         try
                         {
                             Instance = System.Text.Json.JsonSerializer.Deserialize<Config>(File.ReadAllText(cfgpath));
-                            Instance.OsuPath = osupath;
-                            if (!Instance.Collections.Any(x => x.Name == "Sukidesu"))
-                                Instance.Collections.Add(new GalleryCollection() { Name = "Sukidesu", Description = "我喜欢的图集" });
-                            return Instance;
+                            if (Instance != null)
+                            {
+                                if (!Instance.Collections.Any(x => x.Name == "Sukidesu"))
+                                    Instance.Collections.Add(new GalleryCollection() { Name = "Sukidesu", Description = "我喜欢的图集" });
+                                return Instance;
+                            }
+                            Instance = new Config();
                         }
                         catch (Exception ex)
                         {
@@ -46,17 +62,20 @@ namespace OsuScreenProtector
                     }
                 }
             }
-            Instance = new Config();
-            var ofd = new OpenFileDialog();
-            ofd.Filter = "osu|osu!.exe";
-            ofd.Multiselect = false;
-            ofd.ShowDialog();
-            if (!File.Exists(ofd.FileName))
-                throw new Exception();
-            Environment.SetEnvironmentVariable(OsuPathToken, Instance.OsuPath = Directory.GetParent(ofd.FileName).FullName, EnvironmentVariableTarget.User);
-            Instance.Save();
+            else
+            {
+                var ofd = new OpenFileDialog();
+                ofd.Filter = "osu|osu!.exe";
+                ofd.Multiselect = false;
+                ofd.ShowDialog();
+                if (!File.Exists(ofd.FileName))
+                    throw new Exception();
+                Environment.SetEnvironmentVariable(OsuPathToken, Instance.OsuPath = Directory.GetParent(ofd.FileName).FullName, EnvironmentVariableTarget.User);
+                Instance.Save();
+            }
             return Instance;
         }
+
         public bool GetShouldRebuildImageCache()
         {
             var songs = Path.Combine(OsuPath, "Songs");
@@ -185,8 +204,12 @@ namespace OsuScreenProtector
 
         public void SaveImmediately()
         {
-            var cfgpath = Path.Combine(OsuPath, ConfigName);
+            var cfgpath = Path.Combine(OsuPath, ConfigName + ".swap");
+            var cfgpath_real = Path.Combine(OsuPath, ConfigName);
             File.WriteAllText(cfgpath, System.Text.Json.JsonSerializer.Serialize(this));
+            File.Delete(cfgpath_real);
+            File.Move(cfgpath, cfgpath_real);
+            File.Delete(cfgpath);
             Logger.Instance.Log("Saved!");
         }
 
@@ -312,7 +335,7 @@ namespace OsuScreenProtector
                     {
                         bmp.ArtistUnicode = value;
                     }
-                    if (key =="source")
+                    if (key == "source")
                     {
                         bmp.Source = value;
                     }
@@ -356,6 +379,9 @@ namespace OsuScreenProtector
         public double BackgroundDim { get; set; } = 20;
         public Thickness SafeArea { get; set; } = new Thickness(0);
         public double Scale { get; set; } = 1;
+        public bool ChecksUpdate { get; set; } = true;
+        [JsonIgnore()]
+        public double CurrentVersion =>1;
     }
 }
 

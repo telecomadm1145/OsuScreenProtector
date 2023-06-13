@@ -61,10 +61,6 @@ namespace osp
         {
             return Orientation == FlexOrientation.Row;
         }
-        private bool Reverse()
-        {
-            return false;
-        }
         protected override Size ArrangeOverride(Size finalSize)
         {
             var colsum = 0.0;
@@ -107,6 +103,8 @@ namespace osp
         }
         protected override Size MeasureOverride(Size availableSize)
         {
+            if (InternalChildren.Count == 0)
+                return new Size();
             var colsum = 0.0;
             var rowsum = 0.0;
             var colmax = 0.0;
@@ -142,22 +140,20 @@ namespace osp
                     colmax = Math.Max(colmax, desired.Width);
                 }
             }
+            Size size;
             if (RowDir())
             {
                 colmax = Math.Max(colmax, colsum); // wraps last
                 rowsum += rowmax;
-                rowmax = 0;
-                colsum = 0;
-                return new Size(colsum, rowsum);
+                size = new Size(colmax, rowsum);
             }
             else
             {
-                rowsum = Math.Max(rowmax, rowsum);
+                rowmax = Math.Max(rowmax, rowsum);
                 colsum += colmax;
-                colmax = 0;
-                rowsum = 0;
-                return new Size(colsum, rowsum);
+                size= new Size(colsum, rowmax);
             }
+            return size;
         }
 
     }
